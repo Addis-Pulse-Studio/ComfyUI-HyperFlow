@@ -1,0 +1,25 @@
+ComfyUI-HyperFlow
+Copyright 2026 Addis Pulse Studio
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes code ported from HyperFlow for MiniMax-H3
+(https://github.com/Video-Rebirth/hyperflow), Copyright 2026 The HyperFlow authors,
+licensed under the Apache License, Version 2.0:
+
+  - hyperflow/schedule.py: the default 8-step sigma grid, `validate_sigmas`, `shift_sigmas`
+    (which HyperFlow derives from diffusers' `MiniMaxH3Scheduler.set_timesteps`,
+    Copyright 2025 The MiniMax authors and The HuggingFace Team, Apache License 2.0)
+  - hyperflow/header.py: the safetensors header contract (`HyperFlowMetadata.from_dict`)
+  - hyperflow/embedder.py: the two-time blend emb_t(t) + gate * (emb_r(r) - emb_t(t)), after
+    AnyFlow (Gu et al., 2026, https://arxiv.org/abs/2605.13724)
+
+The diffusers -> ComfyUI key mapping in hyperflow/keys.py reverses the renames documented in
+diffusers' scripts/convert_minimax_h3_to_diffusers.py (Apache License 2.0); no code is copied.
+
+No code from ComfyUI (GPL-3.0) is included. This pack imports ComfyUI at run time only.
+
+The HyperFlow weights are NOT part of this product. They are a Model Derivative of MiniMax-H3,
+distributed by Video Rebirth at https://huggingface.co/videorebirth/hyperflow under the
+MiniMax H3 Community License Agreement, which governs their use. HyperFlow is developed by
+Video Rebirth; this pack is not affiliated with or endorsed by Video Rebirth or MiniMax.

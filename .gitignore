@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+node.zip
+
+# Weights are never committed: HyperFlow's are under the MiniMax H3 Community License, distributed by Video Rebirth.
+*.safetensors
+*.ckpt
+
+# Media: test inputs and generated outputs stay local (reference images/voices may be private).
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.mp4
+*.webm

@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comfyui-hyperflow"
+version = "0.1.0"
+description = "Video Rebirth's HyperFlow 8-step adapter (two-time LoRA) on ComfyUI's native MiniMax H3."
+license = "Apache-2.0"
+# NOTICE carries the attribution for the pieces ported from HyperFlow (Apache-2.0, section 4(d)).
+license-files = ["LICENSE", "NOTICE"]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/Addis-Pulse-Studio/ComfyUI-HyperFlow"
+Upstream = "https://github.com/Video-Rebirth/hyperflow"
+
+[tool.setuptools]
+# Flat layout with tests/ and tools/ beside the code: name what ships instead of letting setuptools guess.
+packages = ["hyperflow"]
+py-modules = ["nodes"]
+
+[tool.comfy]
+PublisherId = "addis-pulse"
+DisplayName = "HyperFlow for MiniMax H3"
+Icon = ""
