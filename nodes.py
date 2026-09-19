@@ -9,6 +9,8 @@ import torch
 
 import folder_paths
 
+from .dialogue_nodes import NODE_CLASS_MAPPINGS as DIALOGUE_NODES
+from .dialogue_nodes import NODE_DISPLAY_NAME_MAPPINGS as DIALOGUE_NAMES
 from .hyperflow.patch import OPTIONS_KEY, apply_hyperflow
 from .hyperflow.schedule import shift_sigmas
 from .hyperflow.scheduler import register as register_scheduler
@@ -108,12 +110,14 @@ NODE_CLASS_MAPPINGS = {
     "HyperFlowLoRALoader": HyperFlowLoRALoader,
     "HyperFlowSigmas": HyperFlowSigmas,
     "HyperFlowRetimeAudio": HyperFlowRetimeAudio,
+    **DIALOGUE_NODES,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "HyperFlowLoRALoader": "HyperFlow LoRA Loader (MiniMax H3)",
     "HyperFlowSigmas": "HyperFlow Sigmas (8-step)",
     "HyperFlowRetimeAudio": "Retime Audio for Lip-Sync (fps)",
+    **DIALOGUE_NAMES,
 }
 
 if register_scheduler():
