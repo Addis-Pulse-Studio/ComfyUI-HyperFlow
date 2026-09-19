@@ -9,8 +9,11 @@ import torch
 
 import folder_paths
 
+from .dialogue_nodes import NODE_CLASS_MAPPINGS as DIALOGUE_NODES
+from .dialogue_nodes import NODE_DISPLAY_NAME_MAPPINGS as DIALOGUE_NAMES
 from .hyperflow.patch import OPTIONS_KEY, apply_hyperflow
 from .hyperflow.schedule import shift_sigmas
+from .hyperflow.scheduler import register as register_scheduler
 
 logger = logging.getLogger("HyperFlow")
 
@@ -75,12 +78,47 @@ class HyperFlowSigmas:
         return (torch.tensor(shift_sigmas(options["sigmas"], shift), dtype=torch.float32),)
 
 
+class HyperFlowRetimeAudio:
+    DESCRIPTION = (
+        "Plays an audio track faster or slower by relabelling its sample rate (no resampling, nothing lost). Use it in "
+        "front of a lip-sync node that assumes another frame rate than the video: LatentSync writes its frames at "
+        "25 fps, H3 renders at 24 fps, so feeding it the dialogue retimed 24 -> 25 keeps every mouth shape on the "
+        "frame that owns it. Play the corrected frames back at 24 fps under the original audio."
+    )
+    CATEGORY = "HyperFlow"
+    RETURN_TYPES = ("AUDIO",)
+    FUNCTION = "retime"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+                "video_fps": ("FLOAT", {"default": 24.0, "min": 1.0, "max": 240.0, "step": 0.001,
+                                        "tooltip": "The frame rate the frames were rendered at (H3: 24)."}),
+                "assumed_fps": ("FLOAT", {"default": 25.0, "min": 1.0, "max": 240.0, "step": 0.001,
+                                          "tooltip": "The frame rate the downstream node assumes (LatentSync: 25)."}),
+            }
+        }
+
+    def retime(self, audio, video_fps, assumed_fps):
+        factor = float(assumed_fps) / float(video_fps)
+        return ({**audio, "sample_rate": int(round(int(audio["sample_rate"]) * factor))},)
+
+
 NODE_CLASS_MAPPINGS = {
     "HyperFlowLoRALoader": HyperFlowLoRALoader,
     "HyperFlowSigmas": HyperFlowSigmas,
+    "HyperFlowRetimeAudio": HyperFlowRetimeAudio,
+    **DIALOGUE_NODES,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "HyperFlowLoRALoader": "HyperFlow LoRA Loader (MiniMax H3)",
     "HyperFlowSigmas": "HyperFlow Sigmas (8-step)",
+    "HyperFlowRetimeAudio": "Retime Audio for Lip-Sync (fps)",
+    **DIALOGUE_NAMES,
 }
+
+if register_scheduler():
+    logger.info("HyperFlow: registered the 'hyperflow' scheduler (8 steps) for scheduler-name samplers.")

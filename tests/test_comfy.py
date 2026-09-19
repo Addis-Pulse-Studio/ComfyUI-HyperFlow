@@ -330,5 +330,49 @@ class SamplingTest(unittest.TestCase):
             self._sample(model, twenty)
 
 
+
+@needs_comfy
+class SchedulerAndRetimeTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = write_hyperflow_file(self.tmp.name)
+        self.nodes = _load_nodes()  # importing the pack registers the scheduler
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_scheduler_name_gives_the_grid(self):
+        import comfy.samplers
+        from hyperflow.patch import apply_hyperflow
+
+        self.assertIn("hyperflow", comfy.samplers.SCHEDULER_NAMES)
+        self.assertIn("hyperflow", comfy.samplers.KSampler.SCHEDULERS)
+        model = apply_hyperflow(tiny_model(), self.path)
+        by_name = comfy.samplers.calculate_sigmas(model.get_model_object("model_sampling"), "hyperflow", 8)
+        (by_node,) = self.nodes.NODE_CLASS_MAPPINGS["HyperFlowSigmas"]().get_sigmas(model)
+        self.assertEqual([round(x, 6) for x in by_name.tolist()], [round(x, 6) for x in by_node.tolist()])
+        with self.assertRaisesRegex(ValueError, "8-step"):
+            comfy.samplers.calculate_sigmas(model.get_model_object("model_sampling"), "hyperflow", 20)
+
+    def test_scheduler_name_samples_through_the_guard(self):
+        import comfy.samplers
+        from hyperflow.patch import apply_hyperflow
+
+        model = apply_hyperflow(tiny_model(), self.path)
+        sigmas = comfy.samplers.calculate_sigmas(model.get_model_object("model_sampling"), "hyperflow", 8)
+        out = SamplingTest._sample(self, model, sigmas)
+        self.assertEqual(len(out.unbind()), 2)
+
+    def test_retime_relabels_the_rate_only(self):
+        import torch
+
+        wave = torch.randn(1, 2, 48000)
+        (out,) = self.nodes.NODE_CLASS_MAPPINGS["HyperFlowRetimeAudio"]().retime(
+            {"waveform": wave, "sample_rate": 48000}, 24.0, 25.0)
+        self.assertEqual(out["sample_rate"], 50000)
+        self.assertIs(out["waveform"], wave)
+        self.assertAlmostEqual(wave.shape[-1] / out["sample_rate"], 0.96)  # 24 frames' audio now lasts 24/25 s
+
+
 if __name__ == "__main__":
     unittest.main()

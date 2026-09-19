@@ -80,6 +80,45 @@ One HyperFlow file serves all of them. Reference and keyframe rows, including an
 `r = t`; only the generated rows step along the grid. In the audio-guided and Ref2VA runs, the generated soundtrack
 follows the reference voice's loudness envelope with correlation 0.97–0.98, 0 ms lag and no drift.
 
+## Multi-character dialogue
+
+`example_workflows/hyperflow_ref2va_2speaker_dialogue.json` gives two characters their own dialogue. Each one is
+bound to their own picture, voice and line, and the recordings drive the mouths and play in the MP4 at exactly their
+own seconds.
+
+```
+LoadAudio ×2 → HyperFlow Dialogue Line ×2 → HyperFlow Dialogue Track ─┬ prompt, length → MiniMax H3 Reference to Video
+                                                                       ├ drive/final audio → HyperFlow Audio Lock → sampler
+                                                                       │                         └ mux_audio → CreateVideo
+                                                                       └ plan → Speaker Segment → LatentSync → Speaker Paste
+```
+
+- **HyperFlow Dialogue Line** is one line of dialogue. It records the speaker, their `<Picture N>` and `<Audio N>`
+  ordinals, and when the line starts and how long it lasts. A start of `-1` means right after the previous line.
+  `drive_audio` moves the mouth. `final_audio` is optional: a clean take muxed at the same seconds.
+- **HyperFlow Dialogue Track** places every line sample-exactly on one track. The track is exactly as long as the
+  video: the H3 frame count divided by 24, so 15 s becomes 362 frames and a 15.083 s track. The node outputs the drive
+  track, the final track, that frame count and the plan, and it can append the timing schedule to the prompt.
+  Overlapping lines raise an error unless `overlap` is `mix`.
+- **HyperFlow Audio Lock** takes the latent from `MiniMax H3 Reference to Video` or `Image to Video`. It
+  VAE-encodes the drive track into the target audio stream. In `lock_source` mode it masks that stream at 0, so H3
+  never regenerates the dialogue and the real waveform drives the mouths at every step. H3 labels those rows with its
+  conditioning timestep, and HyperFlow pins them (`r = t`). `mux_audio` is the exact final track, cut to the video's
+  length.
+- **Speaker Segment / Speaker Paste** are for when the lock alone isn't enough. They correct one character at a time:
+  - The segment node cuts out only the frames where that character speaks, and optionally only their face region. It
+    also cuts their audio for exactly those frames, relabelled for LatentSync's 25 fps.
+  - The paste node writes the corrected frames back at those frames.
+  - Handles only extend into silence. They stop where another speaker's line begins, so one character's correction
+    never repaints the other's mouth.
+
+`remix_source` re-noises the locked audio to `remix_strength`. HyperFlow wasn't trained on partially masked rows, so
+`lock_source` is the validated mode.
+
+The drive/final split, timed windows and `lock_source` follow the pattern of
+[T8mars/comfyui-minimax-h3-audio-T8](https://github.com/T8mars/comfyui-minimax-h3-audio-T8) (GPL-3.0). No code from
+it is included. This pack implements the pattern from ComfyUI's H3 latent layout and noise-mask semantics.
+
 ## How it maps onto ComfyUI
 
 ComfyUI's `MiniMaxH3Model._forward` embeds each forward's distinct timesteps with one call,
@@ -97,7 +136,7 @@ per-stream audio Euler exactly, so no custom sampler is needed.
 - `tools/gpu_verify.py`: queues the four live runs on a running ComfyUI (`COMFYUI_URL`).
 - `tools/check_av_alignment.py`: measures envelope correlation, lag and drift between a generated soundtrack and a
   reference track.
-- `tools/make_example_workflows.py`: regenerates `example_workflows/`.
+- `tools/make_example_workflows.py`: regenerates `example_workflows/`, including the two-speaker dialogue graph.
 
 ## Tests
 

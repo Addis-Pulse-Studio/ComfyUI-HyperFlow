@@ -1,0 +1,1928 @@
+{
+ "id": "hyperflow-ref2va_2speaker_dialogue",
+ "revision": 0,
+ "last_node_id": 37,
+ "last_link_id": 51,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "UNETLoader",
+   "pos": [
+    40,
+    60
+   ],
+   "size": [
+    380,
+    90
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      1
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "minimax\\higher\\minimax_h3_ref2va_int8_convrot.safetensors",
+    "default"
+   ]
+  },
+  {
+   "id": 2,
+   "type": "HyperFlowLoRALoader",
+   "pos": [
+    460,
+    60
+   ],
+   "size": [
+    380,
+    90
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      2,
+      3
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowLoRALoader"
+   },
+   "widgets_values": [
+    "minimaxh3\\minimax_h3_hyperflow_8step_v1.0.safetensors",
+    1.0
+   ]
+  },
+  {
+   "id": 3,
+   "type": "CLIPLoader",
+   "pos": [
+    40,
+    200
+   ],
+   "size": [
+    380,
+    110
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      19
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "widgets_values": [
+    "minimax\\qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+    "minimax",
+    "default"
+   ]
+  },
+  {
+   "id": 4,
+   "type": "VAELoader",
+   "pos": [
+    40,
+    350
+   ],
+   "size": [
+    380,
+    60
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      9,
+      20
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "minimax\\minimax_h3_video_vae_fp16.safetensors"
+   ],
+   "title": "Video VAE"
+  },
+  {
+   "id": 5,
+   "type": "VAELoader",
+   "pos": [
+    40,
+    450
+   ],
+   "size": [
+    380,
+    60
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      11,
+      21,
+      30
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "minimax\\minimax_h3_audio_vae_fp32.safetensors"
+   ],
+   "title": "Audio VAE"
+  },
+  {
+   "id": 8,
+   "type": "HyperFlowSigmas",
+   "pos": [
+    900,
+    60
+   ],
+   "size": [
+    300,
+    50
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "SIGMAS",
+     "type": "SIGMAS",
+     "links": [
+      7
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowSigmas"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 9,
+   "type": "KSamplerSelect",
+   "pos": [
+    900,
+    160
+   ],
+   "size": [
+    300,
+    60
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "SAMPLER",
+     "type": "SAMPLER",
+     "links": [
+      6
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSamplerSelect"
+   },
+   "widgets_values": [
+    "euler"
+   ]
+  },
+  {
+   "id": 10,
+   "type": "RandomNoise",
+   "pos": [
+    900,
+    260
+   ],
+   "size": [
+    300,
+    80
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "NOISE",
+     "type": "NOISE",
+     "links": [
+      4
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "RandomNoise"
+   },
+   "widgets_values": [
+    42,
+    "fixed"
+   ]
+  },
+  {
+   "id": 11,
+   "type": "BasicGuider",
+   "pos": [
+    900,
+    380
+   ],
+   "size": [
+    300,
+    50
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 3
+    },
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 28
+    }
+   ],
+   "outputs": [
+    {
+     "name": "GUIDER",
+     "type": "GUIDER",
+     "links": [
+      5
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "BasicGuider"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 12,
+   "type": "SamplerCustomAdvanced",
+   "pos": [
+    1240,
+    60
+   ],
+   "size": [
+    300,
+    110
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "noise",
+     "type": "NOISE",
+     "link": 4
+    },
+    {
+     "name": "guider",
+     "type": "GUIDER",
+     "link": 5
+    },
+    {
+     "name": "sampler",
+     "type": "SAMPLER",
+     "link": 6
+    },
+    {
+     "name": "sigmas",
+     "type": "SIGMAS",
+     "link": 7
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 33
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": "LATENT",
+     "links": [
+      8,
+      10
+     ]
+    },
+    {
+     "name": "denoised_output",
+     "type": "LATENT",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SamplerCustomAdvanced"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 13,
+   "type": "VAEDecode",
+   "pos": [
+    1240,
+    220
+   ],
+   "size": [
+    220,
+    50
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 8
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      12,
+      35,
+      39
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 14,
+   "type": "VAEDecodeAudio",
+   "pos": [
+    1240,
+    320
+   ],
+   "size": [
+    220,
+    50
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 10
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 11
+    }
+   ],
+   "outputs": [
+    {
+     "name": "AUDIO",
+     "type": "AUDIO",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecodeAudio"
+   },
+   "widgets_values": [],
+   "title": "H3's decoded audio (unused: the dialogue is muxed exactly)"
+  },
+  {
+   "id": 15,
+   "type": "CreateVideo",
+   "pos": [
+    1500,
+    220
+   ],
+   "size": [
+    260,
+    100
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 12
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 34
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      14
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24,
+    8,
+    "sRGB"
+   ]
+  },
+  {
+   "id": 16,
+   "type": "SaveVideo",
+   "pos": [
+    1500,
+    380
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 14
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/hyperflow_ref2va_2speaker_dialogue",
+    "auto",
+    "auto"
+   ]
+  },
+  {
+   "id": 6,
+   "type": "LoadImage",
+   "pos": [
+    40,
+    560
+   ],
+   "size": [
+    320,
+    300
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      22
+     ]
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "Picture 1 · woman"
+  },
+  {
+   "id": 18,
+   "type": "LoadImage",
+   "pos": [
+    40,
+    900
+   ],
+   "size": [
+    320,
+    300
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      23
+     ]
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "Picture 2 · man"
+  },
+  {
+   "id": 19,
+   "type": "LoadAudio",
+   "pos": [
+    40,
+    1240
+   ],
+   "size": [
+    320,
+    140
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "AUDIO",
+     "type": "AUDIO",
+     "links": [
+      14,
+      24
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadAudio"
+   },
+   "widgets_values": [
+    "",
+    null,
+    null
+   ],
+   "title": "Audio 1 · woman dialogue"
+  },
+  {
+   "id": 20,
+   "type": "LoadAudio",
+   "pos": [
+    40,
+    1420
+   ],
+   "size": [
+    320,
+    140
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "AUDIO",
+     "type": "AUDIO",
+     "links": [
+      15,
+      25
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadAudio"
+   },
+   "widgets_values": [
+    "",
+    null,
+    null
+   ],
+   "title": "Audio 2 · man dialogue"
+  },
+  {
+   "id": 21,
+   "type": "HyperFlowDialogueLine",
+   "pos": [
+    400,
+    1240
+   ],
+   "size": [
+    360,
+    220
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "drive_audio",
+     "type": "AUDIO",
+     "link": 14
+    },
+    {
+     "name": "dialogue",
+     "type": "HF_DIALOGUE",
+     "link": null
+    },
+    {
+     "name": "final_audio",
+     "type": "AUDIO",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "dialogue",
+     "type": "HF_DIALOGUE",
+     "links": [
+      16
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowDialogueLine"
+   },
+   "widgets_values": [
+    "Woman",
+    1,
+    1,
+    0.0,
+    7.5,
+    0.0
+   ],
+   "title": "Line 1 · Woman = <Picture 1> + <Audio 1>"
+  },
+  {
+   "id": 22,
+   "type": "HyperFlowDialogueLine",
+   "pos": [
+    400,
+    1490
+   ],
+   "size": [
+    360,
+    220
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "drive_audio",
+     "type": "AUDIO",
+     "link": 15
+    },
+    {
+     "name": "dialogue",
+     "type": "HF_DIALOGUE",
+     "link": 16
+    },
+    {
+     "name": "final_audio",
+     "type": "AUDIO",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "dialogue",
+     "type": "HF_DIALOGUE",
+     "links": [
+      17
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowDialogueLine"
+   },
+   "widgets_values": [
+    "Man",
+    2,
+    2,
+    -1.0,
+    7.5,
+    0.0
+   ],
+   "title": "Line 2 · Man = <Picture 2> + <Audio 2>, right after"
+  },
+  {
+   "id": 23,
+   "type": "PrimitiveStringMultiline",
+   "pos": [
+    400,
+    560
+   ],
+   "size": [
+    360,
+    300
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": [
+      18
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PrimitiveStringMultiline"
+   },
+   "widgets_values": [
+    "<Picture 1> is the woman and <Audio 1> is her voice. <Picture 2> is the man and <Audio 2> is his voice.\n\n[Shot 1] Only <Picture 1>, the woman, speaks directly to camera in a front-facing studio shot; her lips match every word. [Shot 2] At 00:07.500, the camera cuts to <Picture 2>, the man, who answers directly to camera; his lips match every word. No music, no other voices, no subtitles."
+   ],
+   "title": "Prompt"
+  },
+  {
+   "id": 24,
+   "type": "HyperFlowDialogueTrack",
+   "pos": [
+    800,
+    1240
+   ],
+   "size": [
+    360,
+    200
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "dialogue",
+     "type": "HF_DIALOGUE",
+     "link": 17
+    },
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "link": 18
+    }
+   ],
+   "outputs": [
+    {
+     "name": "drive_audio",
+     "type": "AUDIO",
+     "links": [
+      31
+     ]
+    },
+    {
+     "name": "final_audio",
+     "type": "AUDIO",
+     "links": [
+      32
+     ]
+    },
+    {
+     "name": "length",
+     "type": "INT",
+     "links": [
+      27
+     ]
+    },
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "links": [
+      26
+     ]
+    },
+    {
+     "name": "plan",
+     "type": "HF_DIALOGUE_PLAN",
+     "links": [
+      36,
+      43
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowDialogueTrack"
+   },
+   "widgets_values": [
+    15.0,
+    "error",
+    "auto",
+    "append"
+   ],
+   "title": "Dialogue track · timed windows"
+  },
+  {
+   "id": 7,
+   "type": "MiniMaxH3ReferenceToVideo",
+   "pos": [
+    460,
+    200
+   ],
+   "size": [
+    400,
+    320
+   ],
+   "flags": {},
+   "order": 22,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 19
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 20
+    },
+    {
+     "name": "audio_vae",
+     "type": "VAE",
+     "link": 21
+    },
+    {
+     "name": "ref_images.ref_image_0",
+     "type": "IMAGE",
+     "link": 22
+    },
+    {
+     "name": "ref_images.ref_image_1",
+     "type": "IMAGE",
+     "link": 23
+    },
+    {
+     "name": "ref_audios.ref_audio_0",
+     "type": "AUDIO",
+     "link": 24
+    },
+    {
+     "name": "ref_audios.ref_audio_1",
+     "type": "AUDIO",
+     "link": 25
+    },
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "link": 26,
+     "widget": {
+      "name": "prompt"
+     }
+    },
+    {
+     "name": "length",
+     "type": "INT",
+     "link": 27,
+     "widget": {
+      "name": "length"
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      28
+     ]
+    },
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      29
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MiniMaxH3ReferenceToVideo"
+   },
+   "widgets_values": [
+    "",
+    1344,
+    768,
+    362,
+    "match"
+   ]
+  },
+  {
+   "id": 25,
+   "type": "HyperFlowAudioLock",
+   "pos": [
+    900,
+    480
+   ],
+   "size": [
+    300,
+    130
+   ],
+   "flags": {},
+   "order": 23,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "link": 29
+    },
+    {
+     "name": "audio_vae",
+     "type": "VAE",
+     "link": 30
+    },
+    {
+     "name": "drive_audio",
+     "type": "AUDIO",
+     "link": 31
+    },
+    {
+     "name": "final_audio",
+     "type": "AUDIO",
+     "link": 32
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      33
+     ]
+    },
+    {
+     "name": "mux_audio",
+     "type": "AUDIO",
+     "links": [
+      34,
+      50
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowAudioLock"
+   },
+   "widgets_values": [
+    "lock_source",
+    0.35
+   ],
+   "title": "Audio lock · lock_source"
+  },
+  {
+   "id": 30,
+   "type": "HyperFlowSpeakerSegment",
+   "pos": [
+    1860,
+    760
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 24,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 35
+    },
+    {
+     "name": "plan",
+     "type": "HF_DIALOGUE_PLAN",
+     "link": 36
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      37
+     ]
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": [
+      38
+     ]
+    },
+    {
+     "name": "segment",
+     "type": "HF_SPEAKER_SEGMENT",
+     "links": [
+      41
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowSpeakerSegment"
+   },
+   "widgets_values": [
+    "Woman",
+    "full_frame",
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    0.25,
+    "final",
+    25.0
+   ],
+   "title": "Segment · Woman"
+  },
+  {
+   "id": 31,
+   "type": "LatentSyncNode",
+   "pos": [
+    2220,
+    760
+   ],
+   "size": [
+    300,
+    150
+   ],
+   "flags": {},
+   "order": 25,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 37
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 38
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      40
+     ]
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LatentSyncNode"
+   },
+   "widgets_values": [
+    1247,
+    1.5,
+    20
+   ],
+   "title": "LatentSync · Woman"
+  },
+  {
+   "id": 32,
+   "type": "HyperFlowSpeakerPaste",
+   "pos": [
+    2560,
+    760
+   ],
+   "size": [
+    300,
+    110
+   ],
+   "flags": {},
+   "order": 26,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 39
+    },
+    {
+     "name": "corrected_images",
+     "type": "IMAGE",
+     "link": 40
+    },
+    {
+     "name": "segment",
+     "type": "HF_SPEAKER_SEGMENT",
+     "link": 41
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      42,
+      46
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowSpeakerPaste"
+   },
+   "widgets_values": [
+    12
+   ],
+   "title": "Paste · Woman"
+  },
+  {
+   "id": 33,
+   "type": "HyperFlowSpeakerSegment",
+   "pos": [
+    1860,
+    1120
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 27,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 42
+    },
+    {
+     "name": "plan",
+     "type": "HF_DIALOGUE_PLAN",
+     "link": 43
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      44
+     ]
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": [
+      45
+     ]
+    },
+    {
+     "name": "segment",
+     "type": "HF_SPEAKER_SEGMENT",
+     "links": [
+      48
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowSpeakerSegment"
+   },
+   "widgets_values": [
+    "Man",
+    "full_frame",
+    0.0,
+    0.0,
+    1.0,
+    1.0,
+    0.25,
+    "final",
+    25.0
+   ],
+   "title": "Segment · Man"
+  },
+  {
+   "id": 34,
+   "type": "LatentSyncNode",
+   "pos": [
+    2220,
+    1120
+   ],
+   "size": [
+    300,
+    150
+   ],
+   "flags": {},
+   "order": 28,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 44
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 45
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      47
+     ]
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LatentSyncNode"
+   },
+   "widgets_values": [
+    1247,
+    1.5,
+    20
+   ],
+   "title": "LatentSync · Man"
+  },
+  {
+   "id": 35,
+   "type": "HyperFlowSpeakerPaste",
+   "pos": [
+    2560,
+    1120
+   ],
+   "size": [
+    300,
+    110
+   ],
+   "flags": {},
+   "order": 29,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 46
+    },
+    {
+     "name": "corrected_images",
+     "type": "IMAGE",
+     "link": 47
+    },
+    {
+     "name": "segment",
+     "type": "HF_SPEAKER_SEGMENT",
+     "link": 48
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      49
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "HyperFlowSpeakerPaste"
+   },
+   "widgets_values": [
+    12
+   ],
+   "title": "Paste · Man"
+  },
+  {
+   "id": 36,
+   "type": "CreateVideo",
+   "pos": [
+    2560,
+    1300
+   ],
+   "size": [
+    260,
+    100
+   ],
+   "flags": {},
+   "order": 30,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 49
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 50
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      51
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    24,
+    8,
+    "sRGB"
+   ],
+   "title": "Corrected · same exact dialogue"
+  },
+  {
+   "id": 37,
+   "type": "SaveVideo",
+   "pos": [
+    2560,
+    1440
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 31,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 51
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "video/hyperflow_ref2va_2speaker_lipsync",
+    "auto",
+    "auto"
+   ]
+  },
+  {
+   "id": 17,
+   "type": "MarkdownNote",
+   "pos": [
+    1240,
+    760
+   ],
+   "size": [
+    560,
+    560
+   ],
+   "flags": {},
+   "order": 32,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "MarkdownNote"
+   },
+   "widgets_values": [
+    "# HyperFlow 8-step · two-speaker dialogue, audio-locked\n\nEach character is bound to their own line: **Woman = <Picture 1> + <Audio 1>, 0.00-7.50 s**; **Man = <Picture 2> + <Audio 2>, 7.50-15.00 s** (`start -1` = right after the previous line).\n\n- **Dialogue Track** places the lines sample-exactly on a track exactly as long as the video (15 s -> 362 frames) and appends the timing schedule to the prompt.\n- **Audio Lock · lock_source** encodes that track into the target audio latent and masks it at 0: your dialogue drives the mouths and H3 never regenerates it. HyperFlow pins those rows (r = t).\n- **CreateVideo** muxes `mux_audio`, your exact final dialogue. Wire a clean take into a line's `final_audio` to mux that instead.\n- **If lip sync falls short**, un-bypass the six correction nodes (Ctrl+B): each character is cut out on their own frames with their own track (24->25 fps for LatentSync), corrected and pasted back. Needs ComfyUI-LatentSyncWrapper. In a two-shot, set `region = box` to each face.\n\n**Checkpoint:** a non-pruned H3 (`*_int8_convrot` or `*_bf16`). The `*_pruned_*` files are curve-form (no\n`time_embedder`) and the loader refuses them.\n\n**Weights:** `hf download videorebirth/hyperflow minimax_h3_hyperflow_8step_v1.0.safetensors\n--local-dir models/loras/minimaxh3` (MiniMax H3 Community License; read it first).\n\n**Sampling is fixed:** `HyperFlow Sigmas` gives the 8-step grid stored in the file; sampler `euler`;\n`BasicGuider` (cfg 1.0). No steps, no scheduler, no CFG. Another schedule or a multi-stage sampler raises.\n\nDon't stack HyperFlow with FastH3 / Turbo / TaoMate step LoRAs."
+   ],
+   "title": "Read me"
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "MODEL"
+  ],
+  [
+   2,
+   2,
+   0,
+   8,
+   0,
+   "MODEL"
+  ],
+  [
+   3,
+   2,
+   0,
+   11,
+   0,
+   "MODEL"
+  ],
+  [
+   4,
+   10,
+   0,
+   12,
+   0,
+   "NOISE"
+  ],
+  [
+   5,
+   11,
+   0,
+   12,
+   1,
+   "GUIDER"
+  ],
+  [
+   6,
+   9,
+   0,
+   12,
+   2,
+   "SAMPLER"
+  ],
+  [
+   7,
+   8,
+   0,
+   12,
+   3,
+   "SIGMAS"
+  ],
+  [
+   8,
+   12,
+   0,
+   13,
+   0,
+   "LATENT"
+  ],
+  [
+   9,
+   4,
+   0,
+   13,
+   1,
+   "VAE"
+  ],
+  [
+   10,
+   12,
+   0,
+   14,
+   0,
+   "LATENT"
+  ],
+  [
+   11,
+   5,
+   0,
+   14,
+   1,
+   "VAE"
+  ],
+  [
+   12,
+   13,
+   0,
+   15,
+   0,
+   "IMAGE"
+  ],
+  [
+   14,
+   15,
+   0,
+   16,
+   0,
+   "VIDEO"
+  ],
+  [
+   14,
+   19,
+   0,
+   21,
+   0,
+   "AUDIO"
+  ],
+  [
+   15,
+   20,
+   0,
+   22,
+   0,
+   "AUDIO"
+  ],
+  [
+   16,
+   21,
+   0,
+   22,
+   1,
+   "HF_DIALOGUE"
+  ],
+  [
+   17,
+   22,
+   0,
+   24,
+   0,
+   "HF_DIALOGUE"
+  ],
+  [
+   18,
+   23,
+   0,
+   24,
+   1,
+   "STRING"
+  ],
+  [
+   19,
+   3,
+   0,
+   7,
+   0,
+   "CLIP"
+  ],
+  [
+   20,
+   4,
+   0,
+   7,
+   1,
+   "VAE"
+  ],
+  [
+   21,
+   5,
+   0,
+   7,
+   2,
+   "VAE"
+  ],
+  [
+   22,
+   6,
+   0,
+   7,
+   3,
+   "IMAGE"
+  ],
+  [
+   23,
+   18,
+   0,
+   7,
+   4,
+   "IMAGE"
+  ],
+  [
+   24,
+   19,
+   0,
+   7,
+   5,
+   "AUDIO"
+  ],
+  [
+   25,
+   20,
+   0,
+   7,
+   6,
+   "AUDIO"
+  ],
+  [
+   26,
+   24,
+   3,
+   7,
+   7,
+   "STRING"
+  ],
+  [
+   27,
+   24,
+   2,
+   7,
+   8,
+   "INT"
+  ],
+  [
+   28,
+   7,
+   0,
+   11,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   29,
+   7,
+   1,
+   25,
+   0,
+   "LATENT"
+  ],
+  [
+   30,
+   5,
+   0,
+   25,
+   1,
+   "VAE"
+  ],
+  [
+   31,
+   24,
+   0,
+   25,
+   2,
+   "AUDIO"
+  ],
+  [
+   32,
+   24,
+   1,
+   25,
+   3,
+   "AUDIO"
+  ],
+  [
+   33,
+   25,
+   0,
+   12,
+   4,
+   "LATENT"
+  ],
+  [
+   34,
+   25,
+   1,
+   15,
+   1,
+   "AUDIO"
+  ],
+  [
+   35,
+   13,
+   0,
+   30,
+   0,
+   "IMAGE"
+  ],
+  [
+   36,
+   24,
+   4,
+   30,
+   1,
+   "HF_DIALOGUE_PLAN"
+  ],
+  [
+   37,
+   30,
+   0,
+   31,
+   0,
+   "IMAGE"
+  ],
+  [
+   38,
+   30,
+   1,
+   31,
+   1,
+   "AUDIO"
+  ],
+  [
+   39,
+   13,
+   0,
+   32,
+   0,
+   "IMAGE"
+  ],
+  [
+   40,
+   31,
+   0,
+   32,
+   1,
+   "IMAGE"
+  ],
+  [
+   41,
+   30,
+   2,
+   32,
+   2,
+   "HF_SPEAKER_SEGMENT"
+  ],
+  [
+   42,
+   32,
+   0,
+   33,
+   0,
+   "IMAGE"
+  ],
+  [
+   43,
+   24,
+   4,
+   33,
+   1,
+   "HF_DIALOGUE_PLAN"
+  ],
+  [
+   44,
+   33,
+   0,
+   34,
+   0,
+   "IMAGE"
+  ],
+  [
+   45,
+   33,
+   1,
+   34,
+   1,
+   "AUDIO"
+  ],
+  [
+   46,
+   32,
+   0,
+   35,
+   0,
+   "IMAGE"
+  ],
+  [
+   47,
+   34,
+   0,
+   35,
+   1,
+   "IMAGE"
+  ],
+  [
+   48,
+   33,
+   2,
+   35,
+   2,
+   "HF_SPEAKER_SEGMENT"
+  ],
+  [
+   49,
+   35,
+   0,
+   36,
+   0,
+   "IMAGE"
+  ],
+  [
+   50,
+   25,
+   1,
+   36,
+   1,
+   "AUDIO"
+  ],
+  [
+   51,
+   36,
+   0,
+   37,
+   0,
+   "VIDEO"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.75,
+   "offset": [
+    0,
+    0
+   ]
+  }
+ },
+ "version": 0.4
+}
