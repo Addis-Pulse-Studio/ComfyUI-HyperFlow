@@ -1,8 +1,8 @@
 {
- "id": "hyperflow-ref2va",
+ "id": "hyperflow-audio2va",
  "revision": 0,
  "last_node_id": 26,
- "last_link_id": 23,
+ "last_link_id": 26,
  "nodes": [
   {
    "id": 1,
@@ -32,7 +32,7 @@
     "Node name for S&R": "UNETLoader"
    },
    "widgets_values": [
-    "minimax\\higher\\minimax_h3_ref2va_int8_convrot.safetensors",
+    "minimax\\higher\\minimax_h3_fl2va_int8_convrot.safetensors",
     "default"
    ]
   },
@@ -96,7 +96,7 @@
      "name": "CLIP",
      "type": "CLIP",
      "links": [
-      16
+      15
      ]
     }
    ],
@@ -130,7 +130,8 @@
      "type": "VAE",
      "links": [
       9,
-      17
+      16,
+      22
      ]
     }
    ],
@@ -163,7 +164,7 @@
      "type": "VAE",
      "links": [
       11,
-      18
+      23
      ]
     }
    ],
@@ -296,7 +297,7 @@
     {
      "name": "conditioning",
      "type": "CONDITIONING",
-     "link": 22
+     "link": 26
     }
    ],
    "outputs": [
@@ -351,7 +352,7 @@
     {
      "name": "latent_image",
      "type": "LATENT",
-     "link": 23
+     "link": 17
     }
    ],
    "outputs": [
@@ -524,55 +525,88 @@
     "Node name for S&R": "SaveVideo"
    },
    "widgets_values": [
-    "video/hyperflow_ref2va",
+    "video/hyperflow_audio2va",
     "auto",
     "auto"
    ]
   },
   {
-   "id": 6,
-   "type": "LoadImage",
+   "id": 7,
+   "type": "MiniMaxH3ImageToVideo",
    "pos": [
-    40,
-    560
+    460,
+    200
    ],
    "size": [
-    320,
-    320
+    400,
+    300
    ],
    "flags": {},
    "order": 14,
    "mode": 0,
-   "inputs": [],
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 15
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 16
+    },
+    {
+     "name": "first_frame",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "last_frame",
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "name": "length",
+     "type": "INT",
+     "link": 19,
+     "widget": {
+      "name": "length"
+     }
+    }
+   ],
    "outputs": [
     {
-     "name": "IMAGE",
-     "type": "IMAGE",
+     "name": "positive",
+     "type": "CONDITIONING",
      "links": [
-      19
+      20
      ]
     },
     {
-     "name": "MASK",
-     "type": "MASK",
-     "links": []
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      17,
+      21
+     ]
     }
    ],
    "properties": {
-    "Node name for S&R": "LoadImage"
+    "Node name for S&R": "MiniMaxH3ImageToVideo"
    },
    "widgets_values": [
-    "example.png",
-    "image"
-   ],
-   "title": "Reference image (character)"
+    "A woman in a sunlit kitchen speaks directly to camera, lips in sync with every word of the supplied recording, warm morning light, quiet room tone. No music, no other voices.",
+    1344,
+    768,
+    124
+   ]
   },
   {
    "id": 19,
    "type": "LoadAudio",
    "pos": [
     40,
-    920
+    560
    ],
    "size": [
     320,
@@ -587,8 +621,8 @@
      "name": "AUDIO",
      "type": "AUDIO",
      "links": [
-      15,
-      20
+      18,
+      25
      ]
     }
    ],
@@ -600,103 +634,27 @@
     null,
     null
    ],
-   "title": "Reference audio (voice)"
-  },
-  {
-   "id": 7,
-   "type": "MiniMaxH3ReferenceToVideo",
-   "pos": [
-    460,
-    200
-   ],
-   "size": [
-    400,
-    320
-   ],
-   "flags": {},
-   "order": 16,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "clip",
-     "type": "CLIP",
-     "link": 16
-    },
-    {
-     "name": "vae",
-     "type": "VAE",
-     "link": 17
-    },
-    {
-     "name": "audio_vae",
-     "type": "VAE",
-     "link": 18
-    },
-    {
-     "name": "ref_images.ref_image_0",
-     "type": "IMAGE",
-     "link": 19
-    },
-    {
-     "name": "ref_audios.ref_audio_0",
-     "type": "AUDIO",
-     "link": 20
-    },
-    {
-     "name": "length",
-     "type": "INT",
-     "link": 21,
-     "widget": {
-      "name": "length"
-     }
-    }
-   ],
-   "outputs": [
-    {
-     "name": "positive",
-     "type": "CONDITIONING",
-     "links": [
-      22
-     ]
-    },
-    {
-     "name": "LATENT",
-     "type": "LATENT",
-     "links": [
-      23
-     ]
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "MiniMaxH3ReferenceToVideo"
-   },
-   "widgets_values": [
-    "The character from <Picture 1> talks to the camera in the voice from <Audio 1>, lips in sync with the words, soft studio light.",
-    1344,
-    768,
-    124,
-    "match"
-   ]
+   "title": "Voice / soundtrack the video must follow"
   },
   {
    "id": 26,
    "type": "HyperFlowAudioLength",
    "pos": [
-    400,
-    1100
+    40,
+    740
    ],
    "size": [
     320,
     180
    ],
    "flags": {},
-   "order": 17,
+   "order": 16,
    "mode": 0,
    "inputs": [
     {
      "name": "audio",
      "type": "AUDIO",
-     "link": 15
+     "link": 18
     }
    ],
    "outputs": [
@@ -709,7 +667,7 @@
      "name": "length",
      "type": "INT",
      "links": [
-      21
+      19
      ]
     },
     {
@@ -735,18 +693,119 @@
    "title": "Scene length = the audio's length"
   },
   {
+   "id": 18,
+   "type": "LoadImage",
+   "pos": [
+    40,
+    960
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 4,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      24
+     ]
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "First frame (optional · Ctrl+B to enable)"
+  },
+  {
+   "id": 20,
+   "type": "MiniMaxH3AddGuide",
+   "pos": [
+    900,
+    480
+   ],
+   "size": [
+    300,
+    160
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 20
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 22
+    },
+    {
+     "name": "audio_vae",
+     "type": "VAE",
+     "link": 23
+    },
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "link": 21
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 24
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 25
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      26
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MiniMaxH3AddGuide"
+   },
+   "widgets_values": [
+    0
+   ],
+   "title": "Anchor the track at frame 0"
+  },
+  {
    "id": 17,
    "type": "MarkdownNote",
    "pos": [
     460,
-    580
+    560
    ],
    "size": [
     520,
-    520
+    560
    ],
    "flags": {},
-   "order": 18,
+   "order": 19,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -754,7 +813,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "# HyperFlow 8-step · MiniMax H3 reference image + audio → video + audio\n\nAvatar / character animation on the **ref2va** checkpoint. The same HyperFlow file works: it never touches `adaln_proj`, which carries the reference conditioning. Reference rows stay pinned (r = t).\n\n`<Audio 1>` is the **reference voice**: H3 speaks the prompt in it. *Audio Length* makes the scene last as long as that clip (snapped up to the 17k+5 grid), so a 13 s take renders 328 frames instead of the 124-frame default. Disconnect it to set `length` by hand.\n\nTo make the character say an **exact recording** rather than a voice like it, use `hyperflow_audio2va.json` (anchored track) or `hyperflow_ref2va_2speaker_dialogue.json` (audio lock).\n\n**Checkpoint:** a non-pruned H3 (`*_int8_convrot` or `*_bf16`). The `*_pruned_*` files are curve-form (no\n`time_embedder`) and the loader refuses them.\n\n**Weights:** `hf download videorebirth/hyperflow minimax_h3_hyperflow_8step_v1.0.safetensors\n--local-dir models/loras/minimaxh3` (MiniMax H3 Community License; read it first).\n\n**Sampling is fixed:** `HyperFlow Sigmas` gives the 8-step grid stored in the file; sampler `euler`;\n`BasicGuider` (cfg 1.0). No steps, no scheduler, no CFG. Another schedule or a multi-stage sampler raises.\n\nDon't stack HyperFlow with FastH3 / Turbo / TaoMate step LoRAs."
+    "# HyperFlow 8-step · external audio → synchronized video + audio\n\n**Pick an audio file and press Run** — everything else is wired.\n\n- *Add Guide* encodes the track with the audio VAE and anchors it at frame 0, as conditioning rows. HyperFlow pins those rows (`r = t`) while the generated rows step along the grid, so the picture follows the real waveform.\n- *Audio Length* makes the scene exactly as long as the track: `length` is the audio's duration in frames, snapped up to H3's 17k+5 grid (a 13 s take → 328 frames / 13.667 s). Read `report` for what it did; the trailing silence is the grid rounding, not an error.\n- H3 **regenerates** the soundtrack rather than copying your samples, so phase differs even though timing and loudness match (measured: envelope correlation 0.97, 0 ms lag). Mux your own file over the frames if you need the original samples, or use the audio lock in `hyperflow_ref2va_2speaker_dialogue.json`.\n- Enable *First frame* (Ctrl+B) to pin the opening frame as well — the configuration in `docs/VERIFICATION.md`.\n\n**Checkpoint:** a non-pruned H3 (`*_int8_convrot` or `*_bf16`). The `*_pruned_*` files are curve-form (no\n`time_embedder`) and the loader refuses them.\n\n**Weights:** `hf download videorebirth/hyperflow minimax_h3_hyperflow_8step_v1.0.safetensors\n--local-dir models/loras/minimaxh3` (MiniMax H3 Community License; read it first).\n\n**Sampling is fixed:** `HyperFlow Sigmas` gives the 8-step grid stored in the file; sampler `euler`;\n`BasicGuider` (cfg 1.0). No steps, no scheduler, no CFG. Another schedule or a multi-stage sampler raises.\n\nDon't stack HyperFlow with FastH3 / Turbo / TaoMate step LoRAs."
    ],
    "title": "Read me"
   }
@@ -874,14 +933,6 @@
   ],
   [
    15,
-   19,
-   0,
-   26,
-   0,
-   "AUDIO"
-  ],
-  [
-   16,
    3,
    0,
    7,
@@ -889,60 +940,92 @@
    "CLIP"
   ],
   [
+   16,
+   4,
+   0,
+   7,
+   1,
+   "VAE"
+  ],
+  [
    17,
-   4,
-   0,
-   7,
-   1,
-   "VAE"
-  ],
-  [
-   18,
-   5,
-   0,
-   7,
-   2,
-   "VAE"
-  ],
-  [
-   19,
-   6,
-   0,
-   7,
-   3,
-   "IMAGE"
-  ],
-  [
-   20,
-   19,
-   0,
-   7,
-   4,
-   "AUDIO"
-  ],
-  [
-   21,
-   26,
-   1,
-   7,
-   5,
-   "INT"
-  ],
-  [
-   22,
-   7,
-   0,
-   11,
-   1,
-   "CONDITIONING"
-  ],
-  [
-   23,
    7,
    1,
    12,
    4,
    "LATENT"
+  ],
+  [
+   18,
+   19,
+   0,
+   26,
+   0,
+   "AUDIO"
+  ],
+  [
+   19,
+   26,
+   1,
+   7,
+   4,
+   "INT"
+  ],
+  [
+   20,
+   7,
+   0,
+   20,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   21,
+   7,
+   1,
+   20,
+   3,
+   "LATENT"
+  ],
+  [
+   22,
+   4,
+   0,
+   20,
+   1,
+   "VAE"
+  ],
+  [
+   23,
+   5,
+   0,
+   20,
+   2,
+   "VAE"
+  ],
+  [
+   24,
+   18,
+   0,
+   20,
+   4,
+   "IMAGE"
+  ],
+  [
+   25,
+   19,
+   0,
+   20,
+   5,
+   "AUDIO"
+  ],
+  [
+   26,
+   20,
+   0,
+   11,
+   1,
+   "CONDITIONING"
   ]
  ],
  "groups": [],

@@ -21,6 +21,7 @@ HYPERFLOW = "minimaxh3\\minimax_h3_hyperflow_8step_v1.0.safetensors"
 CLIP = "minimax\\qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
 VIDEO_VAE = "minimax\\minimax_h3_video_vae_fp16.safetensors"
 AUDIO_VAE = "minimax\\minimax_h3_audio_vae_fp32.safetensors"
+SINGULARITY = "minimax\\Singularity\\Minimax-h3_Singularity_ref2va_v1.3_int8.safetensors"
 
 COMMON_NOTE = """**Checkpoint:** a non-pruned H3 (`*_int8_convrot` or `*_bf16`). The `*_pruned_*` files are curve-form (no
 `time_embedder`) and the loader refuses them.
@@ -36,7 +37,9 @@ Don't stack HyperFlow with FastH3 / Turbo / TaoMate step LoRAs."""
 
 class Graph:
     def __init__(self):
-        self.nodes, self.links, self.by_id = [], [], {}
+        self.nodes, self.links, self.groups, self.by_id = [], [], [], {}
+        # monotonic, never len(links) + 1: the dialogue graph deletes a link, which would otherwise reissue its id
+        self.next_link = 1
 
     def add(self, i, kind, pos, widgets=None, inputs=(), outputs=(), size=(320, 100), title=None):
         node = {"id": i, "type": kind, "pos": list(pos), "size": list(size), "flags": {}, "order": len(self.nodes),
@@ -49,7 +52,7 @@ class Graph:
         self.by_id[i] = node
 
     def link(self, src, slot, dst, name):
-        lid = len(self.links) + 1
+        lid, self.next_link = self.next_link, self.next_link + 1
         s, d = self.by_id[src], self.by_id[dst]
         kind = s["outputs"][slot]["type"]
         dslot = next(j for j, x in enumerate(d["inputs"]) if x["name"] == name)
@@ -57,9 +60,14 @@ class Graph:
         d["inputs"][dslot]["link"] = lid
         self.links.append([lid, src, slot, dst, dslot, kind])
 
+    def group(self, title, bounding, color):
+        self.groups.append({"id": len(self.groups) + 1, "title": title, "bounding": list(bounding), "color": color,
+                            "font_size": 24, "flags": {}})
+
     def dump(self, name):
-        wf = {"id": f"hyperflow-{name}", "revision": 0, "last_node_id": max(self.by_id), "last_link_id": len(self.links),
-              "nodes": self.nodes, "links": self.links, "groups": [], "config": {},
+        wf = {"id": f"hyperflow-{name}", "revision": 0, "last_node_id": max(self.by_id),
+              "last_link_id": self.next_link - 1,
+              "nodes": self.nodes, "links": self.links, "groups": self.groups, "config": {},
               "extra": {"ds": {"scale": 0.75, "offset": [0, 0]}}, "version": 0.4}
         with open(os.path.join(OUT, f"hyperflow_{name}.json"), "w", encoding="utf-8") as handle:
             json.dump(wf, handle, indent=1, ensure_ascii=False)
@@ -69,7 +77,8 @@ class Graph:
 def base(g: Graph, checkpoint: str, prefix: str):
     """Loaders, HyperFlow, sampler and decode/save. Conditioning node 7 is added by the caller."""
     g.add(1, "UNETLoader", (40, 60), [checkpoint, "default"], outputs=[("MODEL", "MODEL")], size=(380, 90))
-    g.add(2, "HyperFlowLoRALoader", (460, 60), [HYPERFLOW, 1.0], [("model", "MODEL")], [("MODEL", "MODEL")], size=(380, 90))
+    g.add(2, "HyperFlowLoRALoader", (460, 60), [HYPERFLOW, 1.0, "auto"], [("model", "MODEL")], [("MODEL", "MODEL")],
+          size=(380, 90))
     g.add(3, "CLIPLoader", (40, 200), [CLIP, "minimax", "default"], outputs=[("CLIP", "CLIP")], size=(380, 110))
     g.add(4, "VAELoader", (40, 350), [VIDEO_VAE], outputs=[("VAE", "VAE")], size=(380, 60), title="Video VAE")
     g.add(5, "VAELoader", (40, 450), [AUDIO_VAE], outputs=[("VAE", "VAE")], size=(380, 60), title="Audio VAE")
@@ -103,25 +112,45 @@ def base(g: Graph, checkpoint: str, prefix: str):
     g.link(15, 0, 16, "video")
 
 
-def image_to_video(g: Graph, prompt: str):
-    g.add(7, "MiniMaxH3ImageToVideo", (460, 200), [prompt, 1344, 768, 124],
-          [("clip", "CLIP"), ("vae", "VAE"), ("first_frame", "IMAGE"), ("last_frame", "IMAGE")],
+def as_input(g: Graph, node: int, *names: str):
+    """Mark widgets as widget-converted inputs, so another node can drive them."""
+    for slot in g.by_id[node]["inputs"]:
+        if slot["name"] in names:
+            slot["widget"] = {"name": slot["name"]}
+
+
+def image_to_video(g: Graph, prompt: str, length: int = 124, length_input: bool = False):
+    inputs = [("clip", "CLIP"), ("vae", "VAE"), ("first_frame", "IMAGE"), ("last_frame", "IMAGE")]
+    if length_input:
+        inputs.append(("length", "INT"))
+    g.add(7, "MiniMaxH3ImageToVideo", (460, 200), [prompt, 1344, 768, length], inputs,
           [("positive", "CONDITIONING"), ("LATENT", "LATENT")], size=(400, 300))
+    if length_input:
+        as_input(g, 7, "length")
     g.link(3, 0, 7, "clip")
     g.link(4, 0, 7, "vae")
     g.link(7, 1, 12, "latent_image")
 
 
-def t2v():
+def audio_length(g: Graph, i: int, pos, audio_node: int, title="Scene length = the audio's length"):
+    """'HyperFlow Audio Length': the render lasts exactly as long as the track, with no duration widget to sync."""
+    g.add(i, "HyperFlowAudioLength", pos, [0.0, 124, 362, 24.0], [("audio", "AUDIO")],
+          [("seconds", "FLOAT"), ("length", "INT"), ("aligned_seconds", "FLOAT"), ("report", "STRING")],
+          size=(320, 180), title=title)
+    g.link(audio_node, 0, i, "audio")
+
+
+def t2va():
     g = Graph()
-    base(g, FL2VA, "t2v")
+    base(g, FL2VA, "t2va")
     image_to_video(g, "A red fox trots through a snowy pine forest at dawn, breath steaming in the cold air. "
                       "The soft crunch of snow under its paws and distant birdsong.")
     g.link(7, 0, 11, "conditioning")
-    g.add(17, "MarkdownNote", (460, 560), ["# HyperFlow 8-step · MiniMax H3 text → video + audio\n\n"
-                                           "t2va runs on the fl2va checkpoint with no frames connected.\n\n" + COMMON_NOTE],
-          size=(520, 380), title="Read me")
-    g.dump("t2v")
+    g.add(17, "MarkdownNote", (460, 560), ["# HyperFlow 8-step · MiniMax H3 text → video + audio (t2va)\n\n"
+                                           "t2va runs on the fl2va checkpoint with no frames connected: H3 writes "
+                                           "the soundtrack from the prompt along with the picture.\n\n" + COMMON_NOTE],
+          size=(520, 400), title="Read me")
+    g.dump("t2va")
 
 
 def fl2va():
@@ -168,21 +197,70 @@ def ref2va():
           ["The character from <Picture 1> talks to the camera in the voice from <Audio 1>, lips in sync with the "
            "words, soft studio light.", 1344, 768, 124, "match"],
           [("clip", "CLIP"), ("vae", "VAE"), ("audio_vae", "VAE"), ("ref_images.ref_image_0", "IMAGE"),
-           ("ref_audios.ref_audio_0", "AUDIO")],
+           ("ref_audios.ref_audio_0", "AUDIO"), ("length", "INT")],
           [("positive", "CONDITIONING"), ("LATENT", "LATENT")], size=(400, 320))
+    as_input(g, 7, "length")
+    audio_length(g, 26, (400, 1100), 19)
     g.link(3, 0, 7, "clip")
     g.link(4, 0, 7, "vae")
     g.link(5, 0, 7, "audio_vae")
     g.link(6, 0, 7, "ref_images.ref_image_0")
     g.link(19, 0, 7, "ref_audios.ref_audio_0")
+    g.link(26, 1, 7, "length")
     g.link(7, 0, 11, "conditioning")
     g.link(7, 1, 12, "latent_image")
     g.add(17, "MarkdownNote", (460, 580), ["# HyperFlow 8-step · MiniMax H3 reference image + audio → video + audio\n\n"
                                            "Avatar / character animation on the **ref2va** checkpoint. The same "
                                            "HyperFlow file works: it never touches `adaln_proj`, which carries the "
-                                           "reference conditioning. Reference rows stay pinned (r = t).\n\n" + COMMON_NOTE],
-          size=(520, 400), title="Read me")
+                                           "reference conditioning. Reference rows stay pinned (r = t).\n\n"
+                                           "`<Audio 1>` is the **reference voice**: H3 speaks the prompt in it. "
+                                           "*Audio Length* makes the scene last as long as that clip (snapped up to "
+                                           "the 17k+5 grid), so a 13 s take renders 328 frames instead of the "
+                                           "124-frame default. Disconnect it to set `length` by hand.\n\n"
+                                           "To make the character say an **exact recording** rather than a voice "
+                                           "like it, use `hyperflow_audio2va.json` (anchored track) or "
+                                           "`hyperflow_ref2va_2speaker_dialogue.json` (audio lock).\n\n" + COMMON_NOTE],
+          size=(520, 520), title="Read me")
     g.dump("ref2va")
+
+
+def audio2va():
+    """An external recording drives the scene: anchored at frame 0, and it sets the scene's length."""
+    g = Graph()
+    base(g, FL2VA, "audio2va")
+    image_to_video(g, "A woman in a sunlit kitchen speaks directly to camera, lips in sync with every word of the "
+                      "supplied recording, warm morning light, quiet room tone. No music, no other voices.",
+                   length_input=True)
+    g.add(19, "LoadAudio", (40, 560), ["", None, None], [], [("AUDIO", "AUDIO")], size=(320, 140),
+          title="Voice / soundtrack the video must follow")
+    audio_length(g, 26, (40, 740), 19)
+    g.add(18, "LoadImage", (40, 960), ["example.png", "image"], outputs=[("IMAGE", "IMAGE"), ("MASK", "MASK")],
+          size=(320, 320), title="First frame (optional · Ctrl+B to enable)")
+    g.by_id[18]["mode"] = 4
+    g.add(20, "MiniMaxH3AddGuide", (900, 480), [0],
+          [("positive", "CONDITIONING"), ("vae", "VAE"), ("audio_vae", "VAE"), ("latent", "LATENT"),
+           ("image", "IMAGE"), ("audio", "AUDIO")], [("positive", "CONDITIONING")], size=(300, 160),
+          title="Anchor the track at frame 0")
+    for src, slot, dst, name in ((26, 1, 7, "length"), (7, 0, 20, "positive"), (7, 1, 20, "latent"),
+                                 (4, 0, 20, "vae"), (5, 0, 20, "audio_vae"), (18, 0, 20, "image"),
+                                 (19, 0, 20, "audio"), (20, 0, 11, "conditioning")):
+        g.link(src, slot, dst, name)
+    g.add(17, "MarkdownNote", (460, 560), [
+        "# HyperFlow 8-step · external audio → synchronized video + audio\n\n"
+        "**Pick an audio file and press Run** — everything else is wired.\n\n"
+        "- *Add Guide* encodes the track with the audio VAE and anchors it at frame 0, as conditioning rows. "
+        "HyperFlow pins those rows (`r = t`) while the generated rows step along the grid, so the picture follows "
+        "the real waveform.\n"
+        "- *Audio Length* makes the scene exactly as long as the track: `length` is the audio's duration in frames, "
+        "snapped up to H3's 17k+5 grid (a 13 s take → 328 frames / 13.667 s). Read `report` for what it did; the "
+        "trailing silence is the grid rounding, not an error.\n"
+        "- H3 **regenerates** the soundtrack rather than copying your samples, so phase differs even though timing "
+        "and loudness match (measured: envelope correlation 0.97, 0 ms lag). Mux your own file over the frames if "
+        "you need the original samples, or use the audio lock in "
+        "`hyperflow_ref2va_2speaker_dialogue.json`.\n"
+        "- Enable *First frame* (Ctrl+B) to pin the opening frame as well — the configuration in "
+        "`docs/VERIFICATION.md`.\n\n" + COMMON_NOTE], size=(520, 560), title="Read me")
+    g.dump("audio2va")
 
 
 def dialogue():
@@ -222,9 +300,7 @@ def dialogue():
            ("ref_images.ref_image_1", "IMAGE"), ("ref_audios.ref_audio_0", "AUDIO"),
            ("ref_audios.ref_audio_1", "AUDIO"), ("prompt", "STRING"), ("length", "INT")],
           [("positive", "CONDITIONING"), ("LATENT", "LATENT")], size=(400, 320))
-    for slot in g.by_id[7]["inputs"]:
-        if slot["name"] in ("prompt", "length"):
-            slot["widget"] = {"name": slot["name"]}
+    as_input(g, 7, "prompt", "length")
     g.add(25, "HyperFlowAudioLock", (900, 480), ["lock_source", 0.35],
           [("latent", "LATENT"), ("audio_vae", "VAE"), ("drive_audio", "AUDIO"), ("final_audio", "AUDIO")],
           [("latent", "LATENT"), ("mux_audio", "AUDIO"), ("report", "STRING")], size=(300, 130),
@@ -286,9 +362,80 @@ def dialogue():
     g.dump("ref2va_2speaker_dialogue")
 
 
+def singularity():
+    """Singularity v1.3 (ref2va fine-tune): T2V / I2V / Ref2V / V2V on one reference node, switched by group bypass."""
+    g = Graph()
+    base(g, SINGULARITY, "singularity")
+    g.add(7, "MiniMaxH3ReferenceToVideo", (460, 200),
+          ["[Shot 1] A medium close-up at eye level establishes <Picture 1> centered in frame against a softly lit "
+           "studio backdrop, warm practical lights glowing behind. <Picture 1> begins still, takes a breath, then "
+           "speaks directly to camera in the voice from <Audio 1>, lips matching every word, eyebrows lifting and one "
+           "hand rising as the sentence builds. The camera slowly pushes in from medium close-up to close-up at a "
+           "steady, gentle pace, keeping the face sharp; natural matte skin, soft HDR highlights. Soundscape: the "
+           "voice from <Audio 1> over quiet room tone. No music, no subtitles.", 1344, 768, 124, "match"],
+          [("clip", "CLIP"), ("vae", "VAE"), ("audio_vae", "VAE"), ("ref_images.ref_image_0", "IMAGE"),
+           ("ref_videos.ref_video_0", "IMAGE"), ("ref_video_audios.ref_video_audio_0", "AUDIO"),
+           ("ref_audios.ref_audio_0", "AUDIO")],
+          [("positive", "CONDITIONING"), ("LATENT", "LATENT")], size=(400, 340))
+
+    # Ref2V (on): character image + voice
+    g.group("Ref2V · <Picture 1> + <Audio 1> (bypass all for T2V)", (20, 580, 760, 380), "#3f789e")
+    g.add(6, "LoadImage", (40, 620), ["example.png", "image"], outputs=[("IMAGE", "IMAGE"), ("MASK", "MASK")],
+          size=(320, 320), title="Picture 1 · character")
+    g.add(19, "LoadAudio", (400, 620), ["", None, None], [], [("AUDIO", "AUDIO")], size=(320, 140),
+          title="Audio 1 · voice")
+    # V2V (bypassed): reference clip + its soundtrack
+    g.group("V2V · <Video 1> + soundtrack (Ctrl+B to enable)", (20, 990, 760, 380), "#8a5a9e")
+    g.add(21, "LoadVideo", (40, 1030), [""], outputs=[("VIDEO", "VIDEO")], size=(320, 320),
+          title="Video 1 · reference clip (24 fps, 2-15 s)")
+    g.add(22, "GetVideoComponents", (400, 1030), [], [("video", "VIDEO")],
+          [("images", "IMAGE"), ("audio", "AUDIO"), ("fps", "FLOAT"), ("bit_depth", "COMBO"),
+           ("color_space", "COMBO")], size=(260, 130))
+    # I2V (bypassed): first frame anchored at frame 0
+    g.group("I2V · first frame at frame 0 (Ctrl+B to enable)", (20, 1400, 760, 380), "#4f8a5a")
+    g.add(18, "LoadImage", (40, 1440), ["example.png", "image"], outputs=[("IMAGE", "IMAGE"), ("MASK", "MASK")],
+          size=(320, 320), title="First frame")
+    g.add(20, "MiniMaxH3AddGuide", (400, 1440), [0],
+          [("positive", "CONDITIONING"), ("vae", "VAE"), ("audio_vae", "VAE"), ("latent", "LATENT"),
+           ("image", "IMAGE"), ("audio", "AUDIO")], [("positive", "CONDITIONING")], size=(300, 160),
+          title="Anchor first frame")
+    for i in (18, 20, 21, 22):
+        g.by_id[i]["mode"] = 4
+
+    for src, slot, dst, name in (
+            (3, 0, 7, "clip"), (4, 0, 7, "vae"), (5, 0, 7, "audio_vae"),
+            (6, 0, 7, "ref_images.ref_image_0"), (19, 0, 7, "ref_audios.ref_audio_0"),
+            (21, 0, 22, "video"), (22, 0, 7, "ref_videos.ref_video_0"), (22, 1, 7, "ref_video_audios.ref_video_audio_0"),
+            (7, 0, 20, "positive"), (7, 1, 20, "latent"), (4, 0, 20, "vae"), (5, 0, 20, "audio_vae"),
+            (18, 0, 20, "image"), (20, 0, 11, "conditioning"), (7, 1, 12, "latent_image")):
+        g.link(src, slot, dst, name)
+
+    g.add(17, "MarkdownNote", (900, 740), [
+        "# HyperFlow 8-step · MiniMax-H3 Singularity v1.3 · T2V / I2V / Ref2V / V2V\n\n"
+        "[Singularity](https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity) is a ref2va fine-tune: HDR "
+        "quality and less blur, face restoration in medium/long shots, no glossy skin, stronger dynamic motion "
+        "(action, martial arts), spell/VFX, facial expression and camera response. Base H3 abilities are kept.\n\n"
+        "**Modes** (toggle a group's nodes with Ctrl+B; they all feed one *Reference to Video* node):\n"
+        "- **Ref2V** (default): <Picture 1> character + <Audio 1> voice.\n"
+        "- **T2V**: bypass the Ref2V group and drop the tags from the prompt.\n"
+        "- **I2V**: enable the I2V group; the image is pinned at frame 0. Bypass Ref2V unless you also want the "
+        "references.\n"
+        "- **V2V**: enable the V2V group and refer to the clip as <Video 1> (its soundtrack is <Audio 1>, listed "
+        "before standalone audio). 24 fps, 2-15 s; longer clips are cut to the output length.\n\n"
+        "**Prompting** (Singularity spec): `[Shot 1]`, `[Shot 2] At 00:03.000 ...`; causal action chains; explicit "
+        "camera verbs (push-in, tracking, orbit); describe VFX trigger, form and physical consequence.\n\n"
+        "**Checkpoint:** `Minimax-h3_Singularity_ref2va_v1.3_int8` only. The `_Pruned_` int8 / w4a8 files have no "
+        "`time_embedder` and the loader refuses them.\n\n"
+        "**Acceleration:** HyperFlow replaces the card's `ref2v_turbo_4step` LoRA; never stack the two.\n\n"
+        + COMMON_NOTE], size=(640, 620), title="Read me")
+    g.dump("singularity_multimodal")
+
+
 if __name__ == "__main__":
-    t2v()
+    t2va()
     fl2va()
     ref2va()
+    audio2va()
     dialogue()
+    singularity()
     print("wrote", sorted(f for f in os.listdir(OUT) if f.endswith(".json")))

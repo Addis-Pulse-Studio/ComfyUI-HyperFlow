@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 # Copyright 2026 Addis Pulse Studio. Licensed under the Apache License, Version 2.0.
-"""Live GPU check: queue t2v, fl2v, audio-guided fl2va and ref2va HyperFlow runs on a running ComfyUI (API format).
+"""Live GPU check: queue the t2va, fl2va, audio2va and ref2va HyperFlow runs on a running ComfyUI (API format).
 
-    COMFYUI_URL=http://127.0.0.1:8188 python tools/gpu_verify.py [t2v] [fl2v] [av_guided] [ref2va]
+    COMFYUI_URL=http://127.0.0.1:8188 python tools/gpu_verify.py [t2va] [fl2va] [audio2va] [ref2va]
 
-Stdlib only. Media come from ComfyUI/input and are named by environment variables: HF_FIRST, HF_LAST (fl2v frames),
-HF_REF_IMAGE (character image for av_guided / ref2va) and HF_REF_AUDIO (voice clip). Outputs land in ComfyUI/output/hyperflow_verify/. Writes each prompt it sends
-to api_<name>.json in the current directory.
+Stdlib only. Media come from ComfyUI/input and are named by environment variables: HF_FIRST, HF_LAST (fl2va
+frames), HF_REF_IMAGE (character image for audio2va / ref2va) and HF_REF_AUDIO (voice clip). Outputs land in
+ComfyUI/output/hyperflow_verify/. Writes each prompt it sends to api_<name>.json in the current directory.
+
+HF_APPLY_MODE sets the loader's apply_mode (default auto) and is appended to the output prefix, so
+
+    HF_APPLY_MODE=bypass python tools/gpu_verify.py && HF_APPLY_MODE=patch python tools/gpu_verify.py
+
+renders the same seed both ways on a quantized checkpoint: the comparison that shows what merging a LoRA into
+int8 weights costs.
 """
 import json, os, sys, time, urllib.request
 URL = os.environ.get("COMFYUI_URL", "http://127.0.0.1:8188")
@@ -16,11 +23,13 @@ FL2VA = "minimax\\higher\\minimax_h3_fl2va_int8_convrot.safetensors"
 REF2VA = "minimax\\higher\\minimax_h3_ref2va_int8_convrot.safetensors"
 HF = "minimaxh3\\minimax_h3_hyperflow_8step_v1.0.safetensors"
 W, H, L, SEED = 1344, 768, 124, 42
+APPLY_MODE = os.environ.get("HF_APPLY_MODE", "auto")
 
 def common(ckpt, prefix):
+    prefix = f"{prefix}_{APPLY_MODE}"
     return {
         "unet": {"class_type": "UNETLoader", "inputs": {"unet_name": ckpt, "weight_dtype": "default"}},
-        "hf": {"class_type": "HyperFlowLoRALoader", "inputs": {"model": ["unet", 0], "lora_name": HF, "strength": 1.0}},
+        "hf": {"class_type": "HyperFlowLoRALoader", "inputs": {"model": ["unet", 0], "lora_name": HF, "strength": 1.0, "apply_mode": APPLY_MODE}},
         "clip": {"class_type": "CLIPLoader", "inputs": {"clip_name": "minimax\\qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors", "type": "minimax", "device": "default"}},
         "vae": {"class_type": "VAELoader", "inputs": {"vae_name": "minimax\\minimax_h3_video_vae_fp16.safetensors"}},
         "avae": {"class_type": "VAELoader", "inputs": {"vae_name": "minimax\\minimax_h3_audio_vae_fp32.safetensors"}},
@@ -43,14 +52,14 @@ def i2v(g, prompt, first=None, last=None):
     g["guider"]["inputs"]["conditioning"] = ["cond", 0]; g["sca"]["inputs"]["latent_image"] = ["cond", 1]
     return g
 
-def t2v():
-    return i2v(common(FL2VA, "t2v"), "A red fox trots through a snowy pine forest at dawn, breath steaming in the cold air. The soft crunch of snow under its paws and distant birdsong.")
+def t2va():
+    return i2v(common(FL2VA, "t2va"), "A red fox trots through a snowy pine forest at dawn, breath steaming in the cold air. The soft crunch of snow under its paws and distant birdsong.")
 
-def fl2v():
-    return i2v(common(FL2VA, "fl2v"), "The subject walks forward through the scene and turns toward the camera, gentle ambient wind and footsteps.", FIRST, LAST)
+def fl2va():
+    return i2v(common(FL2VA, "fl2va"), "The subject walks forward through the scene and turns toward the camera, gentle ambient wind and footsteps.", FIRST, LAST)
 
-def av_guided():
-    g = i2v(common(FL2VA, "av_guided"), "The person looks into the camera and speaks clearly, lips moving in sync with the voice. Quiet room tone.", REF_IMAGE)
+def audio2va():
+    g = i2v(common(FL2VA, "audio2va"), "The person looks into the camera and speaks clearly, lips moving in sync with the voice. Quiet room tone.", REF_IMAGE)
     g["aud"] = {"class_type": "LoadAudio", "inputs": {"audio": REF_AUDIO}}
     g["guide"] = {"class_type": "MiniMaxH3AddGuide", "inputs": {"positive": ["cond", 0], "latent": ["cond", 1], "audio_vae": ["avae", 0], "audio": ["aud", 0], "frame_idx": 0}}
     g["guider"]["inputs"]["conditioning"] = ["guide", 0]
@@ -76,7 +85,7 @@ def post(path, body=None):
     except urllib.error.HTTPError as e:
         return {"http_error": e.code, "body": e.read().decode()[:3000]}
 
-RUNS = {"t2v": t2v, "fl2v": fl2v, "av_guided": av_guided, "ref2va": ref2va}
+RUNS = {"t2va": t2va, "fl2va": fl2va, "audio2va": audio2va, "ref2va": ref2va}
 for name in (sys.argv[1:] or RUNS):
     g = RUNS[name]()
     json.dump(g, open(f"api_{name}.json", "w"), indent=1)
