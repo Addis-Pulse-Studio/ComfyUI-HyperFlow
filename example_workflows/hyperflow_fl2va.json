@@ -72,7 +72,8 @@
    },
    "widgets_values": [
     "minimaxh3\\minimax_h3_hyperflow_8step_v1.0.safetensors",
-    1.0
+    1.0,
+    "auto"
    ]
   },
   {

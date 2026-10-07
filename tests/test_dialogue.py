@@ -262,3 +262,57 @@ class AudioLockTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@needs_comfy
+class AudioLengthTest(unittest.TestCase):
+    """'HyperFlow Audio Length': the scene follows the track, on the 17k+5 grid."""
+
+    def node(self):
+        from tests.test_comfy import _load_nodes
+
+        return _load_nodes().NODE_CLASS_MAPPINGS["HyperFlowAudioLength"]()
+
+    def track(self, seconds, rate=24000):
+        import torch
+
+        return {"waveform": torch.zeros(1, 1, round(seconds * rate)), "sample_rate": rate}
+
+    def test_length_follows_the_audio(self):
+        node = self.node()
+        for seconds, frames in ((13.0, 328), (13.92, 345), (15.0, 362), (7.3, 192)):
+            got_seconds, length, aligned, _ = node.measure(self.track(seconds), 0.0, 124, 362, 24.0)
+            self.assertAlmostEqual(got_seconds, seconds, places=5)
+            self.assertEqual(length, frames)
+            self.assertAlmostEqual(aligned, frames / 24.0)
+            self.assertGreaterEqual(aligned, seconds)
+
+    def test_pad(self):
+        node = self.node()
+        self.assertEqual(node.measure(self.track(13.0), 0.0, 124, 362, 24.0)[1], 328)
+        self.assertEqual(node.measure(self.track(13.0), 1.0, 124, 362, 24.0)[1], 345)
+
+    def test_bounds_are_frame_exact(self):
+        """Clamping happens in seconds, so a bound off the grid would round the scene up past it."""
+        node = self.node()
+        seconds, length, _, report = node.measure(self.track(20.0), 0.0, 124, 362, 24.0)
+        self.assertEqual((round(seconds, 6), length), (round(362 / 24, 6), 362))
+        self.assertIn("will not be lip-synced", json.loads(report)["notes"][0])
+        seconds, length, _, report = node.measure(self.track(2.0), 0.0, 124, 362, 24.0)
+        self.assertEqual((round(seconds, 6), length), (round(124 / 24, 6), 124))
+        self.assertIn("min_length", json.loads(report)["notes"][0])
+        self.assertEqual(node.measure(self.track(20.0), 0.0, 124, 0, 24.0)[1], 481)
+
+    def test_matches_the_audio_window_plan(self):
+        """'length' must agree with MiniMax H3 Audio Window, which is what the latent is actually built from."""
+        import math
+
+        def window_length(scene_seconds):
+            required = max(scene_seconds, 124 / 24)
+            frames = max(5, math.ceil(required * 24 - 1e-9))
+            return frames + ((5 - frames) % 17)
+
+        node = self.node()
+        for audio_seconds in (2.0, 5.0, 7.3, 13.0, 13.92, 15.0, 20.0):
+            seconds, length, _, _ = node.measure(self.track(audio_seconds), 0.0, 124, 362, 24.0)
+            self.assertEqual(length, window_length(seconds), f"{audio_seconds}s")

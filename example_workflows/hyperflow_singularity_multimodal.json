@@ -1,8 +1,8 @@
 {
- "id": "hyperflow-t2v",
+ "id": "hyperflow-singularity_multimodal",
  "revision": 0,
- "last_node_id": 17,
- "last_link_id": 18,
+ "last_node_id": 22,
+ "last_link_id": 29,
  "nodes": [
   {
    "id": 1,
@@ -32,7 +32,7 @@
     "Node name for S&R": "UNETLoader"
    },
    "widgets_values": [
-    "minimax\\higher\\minimax_h3_fl2va_int8_convrot.safetensors",
+    "minimax\\Singularity\\Minimax-h3_Singularity_ref2va_v1.3_int8.safetensors",
     "default"
    ]
   },
@@ -72,7 +72,8 @@
    },
    "widgets_values": [
     "minimaxh3\\minimax_h3_hyperflow_8step_v1.0.safetensors",
-    1.0
+    1.0,
+    "auto"
    ]
   },
   {
@@ -129,7 +130,8 @@
      "type": "VAE",
      "links": [
       9,
-      16
+      16,
+      25
      ]
     }
    ],
@@ -161,7 +163,9 @@
      "name": "VAE",
      "type": "VAE",
      "links": [
-      11
+      11,
+      17,
+      26
      ]
     }
    ],
@@ -294,7 +298,7 @@
     {
      "name": "conditioning",
      "type": "CONDITIONING",
-     "link": 18
+     "link": 28
     }
    ],
    "outputs": [
@@ -349,7 +353,7 @@
     {
      "name": "latent_image",
      "type": "LATENT",
-     "link": 17
+     "link": 29
     }
    ],
    "outputs": [
@@ -522,21 +526,21 @@
     "Node name for S&R": "SaveVideo"
    },
    "widgets_values": [
-    "video/hyperflow_t2v",
+    "video/hyperflow_singularity",
     "auto",
     "auto"
    ]
   },
   {
    "id": 7,
-   "type": "MiniMaxH3ImageToVideo",
+   "type": "MiniMaxH3ReferenceToVideo",
    "pos": [
     460,
     200
    ],
    "size": [
     400,
-    300
+    340
    ],
    "flags": {},
    "order": 14,
@@ -553,13 +557,301 @@
      "link": 16
     },
     {
-     "name": "first_frame",
-     "type": "IMAGE",
-     "link": null
+     "name": "audio_vae",
+     "type": "VAE",
+     "link": 17
     },
     {
-     "name": "last_frame",
+     "name": "ref_images.ref_image_0",
      "type": "IMAGE",
+     "link": 18
+    },
+    {
+     "name": "ref_videos.ref_video_0",
+     "type": "IMAGE",
+     "link": 21
+    },
+    {
+     "name": "ref_video_audios.ref_video_audio_0",
+     "type": "AUDIO",
+     "link": 22
+    },
+    {
+     "name": "ref_audios.ref_audio_0",
+     "type": "AUDIO",
+     "link": 19
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      23
+     ]
+    },
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      24,
+      29
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MiniMaxH3ReferenceToVideo"
+   },
+   "widgets_values": [
+    "[Shot 1] A medium close-up at eye level establishes <Picture 1> centered in frame against a softly lit studio backdrop, warm practical lights glowing behind. <Picture 1> begins still, takes a breath, then speaks directly to camera in the voice from <Audio 1>, lips matching every word, eyebrows lifting and one hand rising as the sentence builds. The camera slowly pushes in from medium close-up to close-up at a steady, gentle pace, keeping the face sharp; natural matte skin, soft HDR highlights. Soundscape: the voice from <Audio 1> over quiet room tone. No music, no subtitles.",
+    1344,
+    768,
+    124,
+    "match"
+   ]
+  },
+  {
+   "id": 6,
+   "type": "LoadImage",
+   "pos": [
+    40,
+    620
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      18
+     ]
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "Picture 1 · character"
+  },
+  {
+   "id": 19,
+   "type": "LoadAudio",
+   "pos": [
+    400,
+    620
+   ],
+   "size": [
+    320,
+    140
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "AUDIO",
+     "type": "AUDIO",
+     "links": [
+      19
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadAudio"
+   },
+   "widgets_values": [
+    "",
+    null,
+    null
+   ],
+   "title": "Audio 1 · voice"
+  },
+  {
+   "id": 21,
+   "type": "LoadVideo",
+   "pos": [
+    40,
+    1030
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 4,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      20
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadVideo"
+   },
+   "widgets_values": [
+    ""
+   ],
+   "title": "Video 1 · reference clip (24 fps, 2-15 s)"
+  },
+  {
+   "id": 22,
+   "type": "GetVideoComponents",
+   "pos": [
+    400,
+    1030
+   ],
+   "size": [
+    260,
+    130
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 20
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      21
+     ]
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": [
+      22
+     ]
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": []
+    },
+    {
+     "name": "bit_depth",
+     "type": "COMBO",
+     "links": []
+    },
+    {
+     "name": "color_space",
+     "type": "COMBO",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "GetVideoComponents"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 18,
+   "type": "LoadImage",
+   "pos": [
+    40,
+    1440
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 4,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      27
+     ]
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "First frame"
+  },
+  {
+   "id": 20,
+   "type": "MiniMaxH3AddGuide",
+   "pos": [
+    400,
+    1440
+   ],
+   "size": [
+    300,
+    160
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 23
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 25
+    },
+    {
+     "name": "audio_vae",
+     "type": "VAE",
+     "link": 26
+    },
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "link": 24
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 27
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
      "link": null
     }
    ],
@@ -568,40 +860,31 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      18
-     ]
-    },
-    {
-     "name": "LATENT",
-     "type": "LATENT",
-     "links": [
-      17
+      28
      ]
     }
    ],
    "properties": {
-    "Node name for S&R": "MiniMaxH3ImageToVideo"
+    "Node name for S&R": "MiniMaxH3AddGuide"
    },
    "widgets_values": [
-    "A red fox trots through a snowy pine forest at dawn, breath steaming in the cold air. The soft crunch of snow under its paws and distant birdsong.",
-    1344,
-    768,
-    124
-   ]
+    0
+   ],
+   "title": "Anchor first frame"
   },
   {
    "id": 17,
    "type": "MarkdownNote",
    "pos": [
-    460,
-    560
+    900,
+    740
    ],
    "size": [
-    520,
-    380
+    640,
+    620
    ],
    "flags": {},
-   "order": 15,
+   "order": 21,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -609,7 +892,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "# HyperFlow 8-step · MiniMax H3 text → video + audio\n\nt2va runs on the fl2va checkpoint with no frames connected.\n\n**Checkpoint:** a non-pruned H3 (`*_int8_convrot` or `*_bf16`). The `*_pruned_*` files are curve-form (no\n`time_embedder`) and the loader refuses them.\n\n**Weights:** `hf download videorebirth/hyperflow minimax_h3_hyperflow_8step_v1.0.safetensors\n--local-dir models/loras/minimaxh3` (MiniMax H3 Community License; read it first).\n\n**Sampling is fixed:** `HyperFlow Sigmas` gives the 8-step grid stored in the file; sampler `euler`;\n`BasicGuider` (cfg 1.0). No steps, no scheduler, no CFG. Another schedule or a multi-stage sampler raises.\n\nDon't stack HyperFlow with FastH3 / Turbo / TaoMate step LoRAs."
+    "# HyperFlow 8-step · MiniMax-H3 Singularity v1.3 · T2V / I2V / Ref2V / V2V\n\n[Singularity](https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity) is a ref2va fine-tune: HDR quality and less blur, face restoration in medium/long shots, no glossy skin, stronger dynamic motion (action, martial arts), spell/VFX, facial expression and camera response. Base H3 abilities are kept.\n\n**Modes** (toggle a group's nodes with Ctrl+B; they all feed one *Reference to Video* node):\n- **Ref2V** (default): <Picture 1> character + <Audio 1> voice.\n- **T2V**: bypass the Ref2V group and drop the tags from the prompt.\n- **I2V**: enable the I2V group; the image is pinned at frame 0. Bypass Ref2V unless you also want the references.\n- **V2V**: enable the V2V group and refer to the clip as <Video 1> (its soundtrack is <Audio 1>, listed before standalone audio). 24 fps, 2-15 s; longer clips are cut to the output length.\n\n**Prompting** (Singularity spec): `[Shot 1]`, `[Shot 2] At 00:03.000 ...`; causal action chains; explicit camera verbs (push-in, tracking, orbit); describe VFX trigger, form and physical consequence.\n\n**Checkpoint:** `Minimax-h3_Singularity_ref2va_v1.3_int8` only. The `_Pruned_` int8 / w4a8 files have no `time_embedder` and the loader refuses them.\n\n**Acceleration:** HyperFlow replaces the card's `ref2v_turbo_4step` LoRA; never stack the two.\n\n**Checkpoint:** a non-pruned H3 (`*_int8_convrot` or `*_bf16`). The `*_pruned_*` files are curve-form (no\n`time_embedder`) and the loader refuses them.\n\n**Weights:** `hf download videorebirth/hyperflow minimax_h3_hyperflow_8step_v1.0.safetensors\n--local-dir models/loras/minimaxh3` (MiniMax H3 Community License; read it first).\n\n**Sampling is fixed:** `HyperFlow Sigmas` gives the 8-step grid stored in the file; sampler `euler`;\n`BasicGuider` (cfg 1.0). No steps, no scheduler, no CFG. Another schedule or a multi-stage sampler raises.\n\nDon't stack HyperFlow with FastH3 / Turbo / TaoMate step LoRAs."
    ],
    "title": "Read me"
   }
@@ -745,22 +1028,150 @@
   ],
   [
    17,
+   5,
+   0,
+   7,
+   2,
+   "VAE"
+  ],
+  [
+   18,
+   6,
+   0,
+   7,
+   3,
+   "IMAGE"
+  ],
+  [
+   19,
+   19,
+   0,
+   7,
+   6,
+   "AUDIO"
+  ],
+  [
+   20,
+   21,
+   0,
+   22,
+   0,
+   "VIDEO"
+  ],
+  [
+   21,
+   22,
+   0,
+   7,
+   4,
+   "IMAGE"
+  ],
+  [
+   22,
+   22,
+   1,
+   7,
+   5,
+   "AUDIO"
+  ],
+  [
+   23,
+   7,
+   0,
+   20,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   24,
+   7,
+   1,
+   20,
+   3,
+   "LATENT"
+  ],
+  [
+   25,
+   4,
+   0,
+   20,
+   1,
+   "VAE"
+  ],
+  [
+   26,
+   5,
+   0,
+   20,
+   2,
+   "VAE"
+  ],
+  [
+   27,
+   18,
+   0,
+   20,
+   4,
+   "IMAGE"
+  ],
+  [
+   28,
+   20,
+   0,
+   11,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   29,
    7,
    1,
    12,
    4,
    "LATENT"
-  ],
-  [
-   18,
-   7,
-   0,
-   11,
-   1,
-   "CONDITIONING"
   ]
  ],
- "groups": [],
+ "groups": [
+  {
+   "id": 1,
+   "title": "Ref2V · <Picture 1> + <Audio 1> (bypass all for T2V)",
+   "bounding": [
+    20,
+    580,
+    760,
+    380
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 2,
+   "title": "V2V · <Video 1> + soundtrack (Ctrl+B to enable)",
+   "bounding": [
+    20,
+    990,
+    760,
+    380
+   ],
+   "color": "#8a5a9e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 3,
+   "title": "I2V · first frame at frame 0 (Ctrl+B to enable)",
+   "bounding": [
+    20,
+    1400,
+    760,
+    380
+   ],
+   "color": "#4f8a5a",
+   "font_size": 24,
+   "flags": {}
+  }
+ ],
  "config": {},
  "extra": {
   "ds": {

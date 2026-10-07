@@ -30,6 +30,13 @@ Read it before you download:
 hf download videorebirth/hyperflow minimax_h3_hyperflow_8step_v1.0.safetensors --local-dir ComfyUI/models/loras/minimaxh3
 ```
 
+The pre-converted file from [drbaph/Hyperflow-Comfyui](https://huggingface.co/drbaph/Hyperflow-Comfyui),
+`custom_node_hyperflow_8step_v1.0_comfyui.safetensors`, works too, from `models/loras/` or `models/hyperflow/`. It
+holds the same weights under ComfyUI's names, with q/k/v packed block-diagonally. The loader unpacks it into the
+original layout; checked bit for bit against the Video Rebirth file, it produces identical patches. Its `mlp.fc1`
+rows are still in diffusers order, and a `hyperflow_fc1_layout: gate_value` header marks a file that isn't. The
+`_pruned` variant has no endpoint embedder, so it can't run the two-time recipe and the loader refuses it.
+
 **Checkpoint.** Use a non-pruned H3 checkpoint, such as `minimax_h3_fl2va_int8_convrot` or `minimax_h3_fl2va_bf16`
 (for ref2va, the `ref2va` equivalent). To check the files before you load them:
 
@@ -52,9 +59,35 @@ MiniMax H3 Image to Video / Reference to Video → positive, latent ────
 ```
 
 - **HyperFlow LoRA Loader (MiniMax H3)**: takes `model`, `lora_name` and `strength`. Leave `strength` at 1.0, the
-  only value HyperFlow was trained at. It scales both LoRAs together.
+  only value HyperFlow was trained at. It scales both LoRAs together. `apply_mode` picks how the LoRA goes on:
+  - `patch` merges it into the weights. On a bf16 checkpoint that is exact and costs nothing per step. On a
+    quantized one ComfyUI dequantizes the weight, adds the LoRA, then hands the result to the op's `set_weight`,
+    which re-quantizes it (`requantize_from_float(w, scale="recalculate", stochastic_rounding=…)`). So all 314
+    weights are quantized a second time, with the delta in them — and the first load spends about 5 minutes doing it.
+  - `bypass` leaves the weights **bit-identical to the checkpoint** and adds `up(down(x))` in each forward, in the
+    activation's own dtype, which is how HyperFlow was distilled. q/k/v are stacked by output rows with no
+    block-diagonal padding, and the SwiGLU that ComfyUI folds into `mlp.fc2`'s kernel is applied to the LoRA branch
+    too, so the delta is exactly the one `patch` would merge. It loads at once, keeps the LoRA (about 3.6 GB) on
+    the GPU and adds a little time per step.
+  - `auto` (the default) merges when no target is quantized and bypasses when any is, and logs which it picked.
+
+  The modes are numerically identical on a bf16 checkpoint, which is what the CPU tests check at all 8 steps. On a
+  quantized one only `patch` re-quantizes, so `auto` prefers `bypass` there: it is the mode that cannot add a
+  second quantization error, and it skips the 5-minute merge. The cost is the resident 3.6 GB.
+
+  How much that error is worth is **not measured here yet** — see [docs/VERIFICATION.md](docs/VERIFICATION.md).
+  To measure it on your own checkpoint, `HF_APPLY_MODE=patch` / `=bypass` in `tools/gpu_verify.py` renders the
+  same seed both ways.
+- **HyperFlow LoRA Loader (Advanced)**: the same, plus `gate` and `sigmas` overrides for ablations. Both default to
+  the weights file's own header, so the defaults reproduce the released model.
 - **HyperFlow Sigmas (8-step)**: outputs the sigma grid stored in the weights file, shifted by the model's video
   shift (12). There's no steps input.
+- **HyperFlow Audio Length (audio → duration)**: measures an audio track and returns the scene length as `seconds`
+  (for a duration input) and `length` (frames, snapped up to H3's 17k+5 grid), so the render lasts as long as the
+  dialogue with no duration widget to keep in sync. `min_length` / `max_length` are in frames, defaulting to H3's
+  trained range, 124 (5.167 s) to 362 (15.083 s): shorter audio is padded up to the floor, longer audio is cut at the
+  ceiling and the cut is reported. Because only whole grid steps exist, a 13 s take renders 328 frames (13.667 s) and
+  a 13.92 s take 345 (14.375 s); pad the track to the frame count so the lips and the mux stay on the same clock.
 
 **Fixed settings:** the 8-step grid, the `euler` sampler, cfg 1.0 and shifts 12/3. The pack raises an error if the
 sampler gets another schedule, or uses a multi-stage sampler (heun, dpm_2, …) that evaluates between grid points.
@@ -67,14 +100,24 @@ offload patches are fine.
 ## Supported workflows
 
 All four were run live on an RTX 5090 with the non-pruned `int8_convrot` checkpoints. See
-[docs/VERIFICATION.md](docs/VERIFICATION.md) for frame checks, timings and audio-alignment numbers.
+[docs/VERIFICATION.md](docs/VERIFICATION.md) for frame checks, timings and audio-alignment numbers (those runs
+predate `auto` and used `patch`).
+
+**Audio reference.** Three different things, so pick by what you have:
+
+| You have | Use | What H3 does with it |
+|---|---|---|
+| a voice you want the character to *sound like* | `ref2va`, `ref_audio_0` | speaks the prompt in that voice |
+| a recording the video must *follow* | `audio2va`, `Add Guide` at frame 0 | regenerates a soundtrack that tracks its timing and loudness (envelope correlation 0.97, 0 ms lag), and moves the lips with it |
+| the exact take that must *be* in the MP4 | `HyperFlow Audio Lock`, `lock_source` | never regenerates it: the real waveform is in the latent at every step and is muxed sample for sample |
 
 | Workflow | Checkpoint | Conditioning node | Example |
 |---|---|---|---|
-| Text → video + audio | `fl2va` | `MiniMax H3 Image to Video`, no frames connected | `example_workflows/hyperflow_t2v.json` |
-| First/last frame → video + audio | `fl2va` | `MiniMax H3 Image to Video` + `first_frame` / `last_frame` | `example_workflows/hyperflow_fl2va.json` |
-| External audio → synchronized video + audio | `fl2va` | `Add Guide for MiniMax H3` with `audio` at frame 0 (in the fl2va example, bypassed until you pick a file) | `example_workflows/hyperflow_fl2va.json` |
-| Reference image + reference audio → video + audio (avatar) | `ref2va` | `MiniMax H3 Reference to Video` | `example_workflows/hyperflow_ref2va.json` |
+| **t2va** — text → video + audio | `fl2va` | `MiniMax H3 Image to Video`, no frames connected | `example_workflows/hyperflow_t2va.json` |
+| **fl2va** — first/last frame → video + audio | `fl2va` | `MiniMax H3 Image to Video` + `first_frame` / `last_frame` | `example_workflows/hyperflow_fl2va.json` |
+| **audio2va** — external audio → synchronized video + audio | `fl2va` | `Add Guide for MiniMax H3` with `audio` at frame 0, length from `HyperFlow Audio Length` | `example_workflows/hyperflow_audio2va.json` |
+| **ref2va** — reference image + reference audio → video + audio (avatar) | `ref2va` | `MiniMax H3 Reference to Video` (`ref_image_0` + `ref_audio_0`) | `example_workflows/hyperflow_ref2va.json` |
+| Singularity fine-tune: T2V / I2V / Ref2V / V2V in one graph (mode groups toggled with Ctrl+B) | `ref2va` ([Singularity v1.3 int8](https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity), not `_Pruned_`) | `MiniMax H3 Reference to Video` (+ `Add Guide` for I2V, `Get Video Components` for V2V) | `example_workflows/hyperflow_singularity_multimodal.json` |
 
 One HyperFlow file serves all of them. Reference and keyframe rows, including anchored audio, are pinned with
 `r = t`; only the generated rows step along the grid. In the audio-guided and Ref2VA runs, the generated soundtrack
@@ -133,10 +176,12 @@ per-stream audio Euler exactly, so no custom sampler is needed.
 ## Tools
 
 - `tools/inspect_hyperflow.py`: checks a HyperFlow file and an H3 checkpoint from their headers alone.
-- `tools/gpu_verify.py`: queues the four live runs on a running ComfyUI (`COMFYUI_URL`).
+- `tools/gpu_verify.py`: queues the four live runs on a running ComfyUI (`COMFYUI_URL`). `HF_APPLY_MODE=patch`
+  / `=bypass` renders the same seed both ways, for the comparison on your own checkpoint.
 - `tools/check_av_alignment.py`: measures envelope correlation, lag and drift between a generated soundtrack and a
   reference track.
-- `tools/make_example_workflows.py`: regenerates `example_workflows/`, including the two-speaker dialogue graph.
+- `tools/make_example_workflows.py`: regenerates `example_workflows/`, including the two-speaker dialogue graph
+  and the Singularity multimodal graph.
 
 ## Tests
 
@@ -145,9 +190,16 @@ COMFYUI_PATH=/path/to/ComfyUI /path/to/comfyui/python run_tests.py -v
 ```
 
 The tests run on CPU against a 2-layer MiniMax H3 built from ComfyUI's real classes. The patched forward must match
-an independent reference at all 8 steps, for fl2va and t2va. That reference merges the LoRA in diffusers layout,
-fuses it back by hand, and feeds explicit `(t, r)` pairs. A real `comfy.sample` run must chain `r_i = t_{i+1}` for
-both streams. The guards must fire. Without `COMFYUI_PATH`, only the pure tests run.
+an independent reference at all 8 steps, for fl2va and t2va, in both apply modes. That reference merges the LoRA in
+diffusers layout, fuses it back by hand, and feeds explicit `(t, r)` pairs. A real `comfy.sample` run must chain
+`r_i = t_{i+1}` for both streams. The guards must fire.
+
+CPU in fp32 only ever takes ComfyUI's eager Linear path, so the bypass adapter is also checked against the calls a
+quantized kernel makes — the SwiGLU folded into `mlp.fc2`, a folded residual, an argument it does not understand,
+and the `auto` / merge-fallback routing — and against both shapes of `MLP.forward`, before and after ComfyUI PR
+\#16816. `tests/test_workflows.py` lints the shipped graphs and needs neither torch nor ComfyUI.
+
+Without `COMFYUI_PATH`, the pure, dialogue and workflow tests run.
 
 ## Licence
 

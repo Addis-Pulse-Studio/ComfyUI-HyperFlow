@@ -1,8 +1,8 @@
 {
- "id": "hyperflow-ref2va",
+ "id": "hyperflow-t2va",
  "revision": 0,
- "last_node_id": 26,
- "last_link_id": 23,
+ "last_node_id": 17,
+ "last_link_id": 18,
  "nodes": [
   {
    "id": 1,
@@ -32,7 +32,7 @@
     "Node name for S&R": "UNETLoader"
    },
    "widgets_values": [
-    "minimax\\higher\\minimax_h3_ref2va_int8_convrot.safetensors",
+    "minimax\\higher\\minimax_h3_fl2va_int8_convrot.safetensors",
     "default"
    ]
   },
@@ -96,7 +96,7 @@
      "name": "CLIP",
      "type": "CLIP",
      "links": [
-      16
+      15
      ]
     }
    ],
@@ -130,7 +130,7 @@
      "type": "VAE",
      "links": [
       9,
-      17
+      16
      ]
     }
    ],
@@ -162,8 +162,7 @@
      "name": "VAE",
      "type": "VAE",
      "links": [
-      11,
-      18
+      11
      ]
     }
    ],
@@ -296,7 +295,7 @@
     {
      "name": "conditioning",
      "type": "CONDITIONING",
-     "link": 22
+     "link": 18
     }
    ],
    "outputs": [
@@ -351,7 +350,7 @@
     {
      "name": "latent_image",
      "type": "LATENT",
-     "link": 23
+     "link": 17
     }
    ],
    "outputs": [
@@ -524,131 +523,45 @@
     "Node name for S&R": "SaveVideo"
    },
    "widgets_values": [
-    "video/hyperflow_ref2va",
+    "video/hyperflow_t2va",
     "auto",
     "auto"
    ]
   },
   {
-   "id": 6,
-   "type": "LoadImage",
-   "pos": [
-    40,
-    560
-   ],
-   "size": [
-    320,
-    320
-   ],
-   "flags": {},
-   "order": 14,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "IMAGE",
-     "type": "IMAGE",
-     "links": [
-      19
-     ]
-    },
-    {
-     "name": "MASK",
-     "type": "MASK",
-     "links": []
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "LoadImage"
-   },
-   "widgets_values": [
-    "example.png",
-    "image"
-   ],
-   "title": "Reference image (character)"
-  },
-  {
-   "id": 19,
-   "type": "LoadAudio",
-   "pos": [
-    40,
-    920
-   ],
-   "size": [
-    320,
-    140
-   ],
-   "flags": {},
-   "order": 15,
-   "mode": 0,
-   "inputs": [],
-   "outputs": [
-    {
-     "name": "AUDIO",
-     "type": "AUDIO",
-     "links": [
-      15,
-      20
-     ]
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "LoadAudio"
-   },
-   "widgets_values": [
-    "",
-    null,
-    null
-   ],
-   "title": "Reference audio (voice)"
-  },
-  {
    "id": 7,
-   "type": "MiniMaxH3ReferenceToVideo",
+   "type": "MiniMaxH3ImageToVideo",
    "pos": [
     460,
     200
    ],
    "size": [
     400,
-    320
+    300
    ],
    "flags": {},
-   "order": 16,
+   "order": 14,
    "mode": 0,
    "inputs": [
     {
      "name": "clip",
      "type": "CLIP",
-     "link": 16
+     "link": 15
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 17
+     "link": 16
     },
     {
-     "name": "audio_vae",
-     "type": "VAE",
-     "link": 18
-    },
-    {
-     "name": "ref_images.ref_image_0",
+     "name": "first_frame",
      "type": "IMAGE",
-     "link": 19
+     "link": null
     },
     {
-     "name": "ref_audios.ref_audio_0",
-     "type": "AUDIO",
-     "link": 20
-    },
-    {
-     "name": "length",
-     "type": "INT",
-     "link": 21,
-     "widget": {
-      "name": "length"
-     }
+     "name": "last_frame",
+     "type": "IMAGE",
+     "link": null
     }
    ],
    "outputs": [
@@ -656,97 +569,40 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      22
+      18
      ]
     },
     {
      "name": "LATENT",
      "type": "LATENT",
      "links": [
-      23
+      17
      ]
     }
    ],
    "properties": {
-    "Node name for S&R": "MiniMaxH3ReferenceToVideo"
+    "Node name for S&R": "MiniMaxH3ImageToVideo"
    },
    "widgets_values": [
-    "The character from <Picture 1> talks to the camera in the voice from <Audio 1>, lips in sync with the words, soft studio light.",
+    "A red fox trots through a snowy pine forest at dawn, breath steaming in the cold air. The soft crunch of snow under its paws and distant birdsong.",
     1344,
     768,
-    124,
-    "match"
+    124
    ]
-  },
-  {
-   "id": 26,
-   "type": "HyperFlowAudioLength",
-   "pos": [
-    400,
-    1100
-   ],
-   "size": [
-    320,
-    180
-   ],
-   "flags": {},
-   "order": 17,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "audio",
-     "type": "AUDIO",
-     "link": 15
-    }
-   ],
-   "outputs": [
-    {
-     "name": "seconds",
-     "type": "FLOAT",
-     "links": []
-    },
-    {
-     "name": "length",
-     "type": "INT",
-     "links": [
-      21
-     ]
-    },
-    {
-     "name": "aligned_seconds",
-     "type": "FLOAT",
-     "links": []
-    },
-    {
-     "name": "report",
-     "type": "STRING",
-     "links": []
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "HyperFlowAudioLength"
-   },
-   "widgets_values": [
-    0.0,
-    124,
-    362,
-    24.0
-   ],
-   "title": "Scene length = the audio's length"
   },
   {
    "id": 17,
    "type": "MarkdownNote",
    "pos": [
     460,
-    580
+    560
    ],
    "size": [
     520,
-    520
+    400
    ],
    "flags": {},
-   "order": 18,
+   "order": 15,
    "mode": 0,
    "inputs": [],
    "outputs": [],
@@ -754,7 +610,7 @@
     "Node name for S&R": "MarkdownNote"
    },
    "widgets_values": [
-    "# HyperFlow 8-step · MiniMax H3 reference image + audio → video + audio\n\nAvatar / character animation on the **ref2va** checkpoint. The same HyperFlow file works: it never touches `adaln_proj`, which carries the reference conditioning. Reference rows stay pinned (r = t).\n\n`<Audio 1>` is the **reference voice**: H3 speaks the prompt in it. *Audio Length* makes the scene last as long as that clip (snapped up to the 17k+5 grid), so a 13 s take renders 328 frames instead of the 124-frame default. Disconnect it to set `length` by hand.\n\nTo make the character say an **exact recording** rather than a voice like it, use `hyperflow_audio2va.json` (anchored track) or `hyperflow_ref2va_2speaker_dialogue.json` (audio lock).\n\n**Checkpoint:** a non-pruned H3 (`*_int8_convrot` or `*_bf16`). The `*_pruned_*` files are curve-form (no\n`time_embedder`) and the loader refuses them.\n\n**Weights:** `hf download videorebirth/hyperflow minimax_h3_hyperflow_8step_v1.0.safetensors\n--local-dir models/loras/minimaxh3` (MiniMax H3 Community License; read it first).\n\n**Sampling is fixed:** `HyperFlow Sigmas` gives the 8-step grid stored in the file; sampler `euler`;\n`BasicGuider` (cfg 1.0). No steps, no scheduler, no CFG. Another schedule or a multi-stage sampler raises.\n\nDon't stack HyperFlow with FastH3 / Turbo / TaoMate step LoRAs."
+    "# HyperFlow 8-step · MiniMax H3 text → video + audio (t2va)\n\nt2va runs on the fl2va checkpoint with no frames connected: H3 writes the soundtrack from the prompt along with the picture.\n\n**Checkpoint:** a non-pruned H3 (`*_int8_convrot` or `*_bf16`). The `*_pruned_*` files are curve-form (no\n`time_embedder`) and the loader refuses them.\n\n**Weights:** `hf download videorebirth/hyperflow minimax_h3_hyperflow_8step_v1.0.safetensors\n--local-dir models/loras/minimaxh3` (MiniMax H3 Community License; read it first).\n\n**Sampling is fixed:** `HyperFlow Sigmas` gives the 8-step grid stored in the file; sampler `euler`;\n`BasicGuider` (cfg 1.0). No steps, no scheduler, no CFG. Another schedule or a multi-stage sampler raises.\n\nDon't stack HyperFlow with FastH3 / Turbo / TaoMate step LoRAs."
    ],
    "title": "Read me"
   }
@@ -874,14 +730,6 @@
   ],
   [
    15,
-   19,
-   0,
-   26,
-   0,
-   "AUDIO"
-  ],
-  [
-   16,
    3,
    0,
    7,
@@ -889,60 +737,28 @@
    "CLIP"
   ],
   [
+   16,
+   4,
+   0,
+   7,
+   1,
+   "VAE"
+  ],
+  [
    17,
-   4,
-   0,
-   7,
-   1,
-   "VAE"
-  ],
-  [
-   18,
-   5,
-   0,
-   7,
-   2,
-   "VAE"
-  ],
-  [
-   19,
-   6,
-   0,
-   7,
-   3,
-   "IMAGE"
-  ],
-  [
-   20,
-   19,
-   0,
-   7,
-   4,
-   "AUDIO"
-  ],
-  [
-   21,
-   26,
-   1,
-   7,
-   5,
-   "INT"
-  ],
-  [
-   22,
-   7,
-   0,
-   11,
-   1,
-   "CONDITIONING"
-  ],
-  [
-   23,
    7,
    1,
    12,
    4,
    "LATENT"
+  ],
+  [
+   18,
+   7,
+   0,
+   11,
+   1,
+   "CONDITIONING"
   ]
  ],
  "groups": [],

@@ -22,6 +22,9 @@ from dataclasses import dataclass
 FPS = 24
 #: MiniMax H3's audio latent runs at 40 frames per second (32 kHz, 800 samples per latent frame).
 AUDIO_LATENT_FPS = 40
+#: The scene lengths H3 was trained on, in frames on the 17k + 5 grid: 124 = 5.167 s, 362 = 15.083 s.
+MIN_TRAINED_FRAMES = 124
+MAX_TRAINED_FRAMES = 362
 #: A start of -1 means "right after the previous line"; a duration of -1 means "the clip's own length".
 AUTO = -1.0
 OVERLAP_MODES = ("error", "mix")

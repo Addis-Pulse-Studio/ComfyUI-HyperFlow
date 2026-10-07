@@ -37,9 +37,23 @@ def inspect_hyperflow(path) -> bool:
     except ValueError as error:
         print(f"  NOT OK: {error}")
         return False
-    plan = keys.plan_from_keys(tensors)
+    if keys.is_native(tensors):
+        # pre-converted: native names, q|k|v fused three ways; expand to the modules Video Rebirth's file has
+        natives = {m["module"]: k for k in tensors if (m := keys.NATIVE_KEY_RE.match(k)) and m["matrix"] == "A"}
+        plan, ranks = {}, set()
+        for native, key_a in natives.items():
+            names = keys.native_to_diffusers(native)
+            ranks.add(tensors[key_a]["shape"][0] // len(names))
+            plan.update({name: {"A": key_a} for name in names})
+        layout = metadata.get(keys.FC1_LAYOUT_KEY, "value_gate (no header key)")
+        print(f"  pre-converted (ComfyUI names, fused q|k|v); fc1 rows {layout}")
+        if not any(m.startswith("endpoint_time_embedder.") for m in plan):
+            print("  NOT OK: no endpoint_time_embedder, this is the *_pruned single-time variant; use the full file")
+            return False
+    else:
+        plan = keys.plan_from_keys(tensors)
+        ranks = {tensors[pair["A"]]["shape"][0] for pair in plan.values()}
     targets = {module: keys.map_module(module) for module in plan}
-    ranks = {tensors[pair["A"]]["shape"][0] for pair in plan.values()}
     dtypes = sorted({tensors[k]["dtype"] for k in tensors})
     endpoint = sorted(m for m, t in targets.items() if t.endpoint is not None)
     print(f"  version {meta.version}, gate {meta.gate:.6g}, rank {sorted(ranks)}, alpha {meta.lora_alpha:g}, dtypes {dtypes}")

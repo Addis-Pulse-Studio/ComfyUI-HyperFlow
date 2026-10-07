@@ -3,7 +3,8 @@
 import json
 import unittest
 
-from tests.support import RAW_SIGMAS, diffusers_modules, hyperflow_metadata, hyperflow_state_dict, needs_torch
+from tests.support import (RAW_SIGMAS, diffusers_modules, hyperflow_metadata, hyperflow_state_dict,
+                           native_state_dict, needs_torch)
 
 from hyperflow import keys
 from hyperflow.header import HyperFlowMetadata
@@ -121,6 +122,54 @@ class ConvertTest(unittest.TestCase):
         sd = {k: v for k, v in hyperflow_state_dict().items() if "endpoint_time_embedder" not in k}
         with self.assertRaises(ValueError):
             keys.convert(sd, lora_alpha=8.0)
+
+
+@needs_torch
+class PreConvertedTest(unittest.TestCase):
+    """drbaph/Hyperflow-Comfyui files: native names, fused q|k|v, fc1 rows in either order."""
+
+    def test_both_fc1_layouts_unpack_to_the_original(self):
+        import torch
+
+        sd = hyperflow_state_dict()
+        for layout, header in (("value_gate", {}), ("gate_value", {keys.FC1_LAYOUT_KEY: "gate_value"})):
+            native = native_state_dict(sd, layout)
+            self.assertTrue(keys.is_native(native))
+            self.assertIn("blocks.0.attn.qkv_proj.lora_B.weight", native)
+            back = keys.normalize(native, header)
+            self.assertEqual(set(back), set(sd), layout)
+            for key, tensor in sd.items():
+                self.assertTrue(torch.equal(back[key], tensor), f"{layout}: {key}")
+
+    def test_same_patches_as_the_original(self):
+        import torch
+
+        sd = hyperflow_state_dict()
+        want = keys.convert(sd, lora_alpha=8.0, qkv_rows=128)
+        got = keys.convert(keys.normalize(native_state_dict(sd)), lora_alpha=8.0, qkv_rows=128)
+        self.assertEqual((got.key_map, got.rank), (want.key_map, want.rank))
+        for key, tensor in want.lora_sd.items():
+            self.assertTrue(torch.equal(got.lora_sd[key], tensor), key)
+
+    def test_original_files_pass_through(self):
+        sd = hyperflow_state_dict()
+        self.assertFalse(keys.is_native(sd))
+        self.assertIs(keys.normalize(sd, {}), sd)
+
+    def test_refusals(self):
+        native = native_state_dict(hyperflow_state_dict())
+        leaky = dict(native)
+        leaky["blocks.0.attn.qkv_proj.lora_B.weight"] = native["blocks.0.attn.qkv_proj.lora_B.weight"] + 1e-3
+        with self.assertRaisesRegex(ValueError, "block-diagonal"):
+            keys.normalize(leaky)
+        pruned = {k: v for k, v in native.items() if "time_embedder" not in k}
+        with self.assertRaisesRegex(ValueError, "_pruned"):
+            keys.normalize(pruned)
+        with self.assertRaisesRegex(ValueError, keys.FC1_LAYOUT_KEY):
+            keys.normalize(native, {keys.FC1_LAYOUT_KEY: "value_value"})
+        with self.assertRaises(KeyError):
+            keys.normalize({**native, "blocks.0.adaln.lora_A.weight": native["blocks.0.mlp.fc2.lora_A.weight"],
+                            "blocks.0.adaln.lora_B.weight": native["blocks.0.mlp.fc2.lora_B.weight"]})
 
 
 if __name__ == "__main__":
